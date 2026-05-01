@@ -42,6 +42,8 @@ export function useAudioInput(): AudioInputState {
     setError(null);
 
     try {
+      console.debug("[audio-input] requesting getUserMedia");
+
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
           echoCancellation: false,
@@ -50,11 +52,29 @@ export function useAudioInput(): AudioInputState {
         },
       });
 
+      console.debug("[audio-input] getUserMedia success", {
+        audioTracks: stream.getAudioTracks().map((track) => ({
+          enabled: track.enabled,
+          id: track.id,
+          label: track.label,
+          muted: track.muted,
+          readyState: track.readyState,
+        })),
+      });
+
       const AudioContextConstructor =
         window.AudioContext ?? window.webkitAudioContext;
       const audioContext = new AudioContextConstructor();
+      console.debug("[audio-input] audioContext created", {
+        sampleRate: audioContext.sampleRate,
+        state: audioContext.state,
+      });
+
       if (audioContext.state === "suspended") {
         await audioContext.resume();
+        console.debug("[audio-input] audioContext resumed", {
+          state: audioContext.state,
+        });
       }
 
       const sourceNode = audioContext.createMediaStreamSource(stream);
@@ -68,14 +88,22 @@ export function useAudioInput(): AudioInputState {
       mediaStreamRef.current = stream;
       sourceNodeRef.current = sourceNode;
 
+      console.debug("[audio-input] analyser ready", {
+        fftSize: analyser.fftSize,
+        sampleRate: audioContext.sampleRate,
+        state: audioContext.state,
+      });
+
       setAnalyserNode(analyser);
       setSampleRate(audioContext.sampleRate);
       setIsRunning(true);
+      console.debug("[audio-input] isRunning -> true");
     } catch (unknownError) {
       const message =
         unknownError instanceof Error
           ? unknownError.message
           : "Unable to start audio input.";
+      console.debug("[audio-input] start failed", unknownError);
       setError(message);
       stop();
     }

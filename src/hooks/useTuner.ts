@@ -57,6 +57,7 @@ export function useTuner(
   const stabilizerStateRef = useRef(createInitialStabilizerState());
   const animationFrameRef = useRef<number | null>(null);
   const lastUiUpdateRef = useRef<number>(0);
+  const lastDebugLogRef = useRef<number>(0);
 
   useEffect(() => {
     if (!analyserNode || !sampleRate || !isRunning) {
@@ -111,6 +112,17 @@ export function useTuner(
           signalReleaseMs,
         },
       );
+
+      if (timestamp - lastDebugLogRef.current > 500) {
+        lastDebugLogRef.current = timestamp;
+        console.debug("[tuner] update", {
+          rms,
+          detectedPitch,
+          frequency: detectedPitch?.frequency ?? null,
+          clarity: detectedPitch?.clarity ?? null,
+          stabilizedReading,
+        });
+      }
 
       if (stabilizedReading) {
         publish(stabilizedReading, timestamp);
