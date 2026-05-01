@@ -17,12 +17,14 @@ import { TabPreview } from "../learn/TabPreview";
 import { useAudioInput } from "../../hooks/useAudioInput";
 import { useTuner } from "../../hooks/useTuner";
 import type { PositionVariant } from "../../types/scale";
+import { getPlayableBoxMidiNumbers } from "../../utils/fretboardNoteUtils";
 import type { StabilizerConfig } from "../../utils/tunerStabilizer";
 
 const PRACTICE_TUNER_CONFIG: Partial<StabilizerConfig> = {
   attackIgnoreMs: 40,
   minClarity: 0.55,
   noteStableFrames: 2,
+  rmsThreshold: 0.005,
   signalReleaseMs: 250,
 };
 
@@ -125,9 +127,7 @@ export function PracticePage() {
         />
         <ScaleExercisePanel
           key={`${selectedScale.id}-${selectedKey}-${selectedPosition}-${selectedVariant}`}
-          boxMidiNumbers={fretboardNotes
-            .filter((note) => note.isInBox)
-            .map((note) => note.midi)}
+          boxMidiNumbers={getPlayableBoxMidiNumbers(fretboardNotes)}
           currentInput={currentInput}
           currentNoteName={currentNoteName}
           error={error}

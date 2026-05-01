@@ -11,6 +11,7 @@ const TRAINING_TUNER_CONFIG: Partial<StabilizerConfig> = {
   attackIgnoreMs: 40,
   minClarity: 0.55,
   noteStableFrames: 2,
+  rmsThreshold: 0.005,
   signalReleaseMs: 250,
 };
 

@@ -2,13 +2,22 @@ import type { TrainingProblem } from "../types/training";
 
 export const trainingProblems: readonly TrainingProblem[] = [
   {
-    id: "find-a-root",
-    title: "Find the Root",
+    id: "find-fixed-root",
+    title: "Find Every Note",
     type: "note",
     difficulty: "beginner",
-    key: "A",
-    scale: "Minor Pentatonic",
-    targetNotes: [45, 57, 69, 81],
+    key: "Random",
+    scale: "Root Notes",
+    targetNotes: [],
+  },
+  {
+    id: "random-root-sprint",
+    title: "Random Root Sprint",
+    type: "note",
+    difficulty: "beginner",
+    key: "Random",
+    scale: "Root Notes",
+    targetNotes: [],
   },
   {
     id: "play-a-minor-scale",

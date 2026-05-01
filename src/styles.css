@@ -768,6 +768,25 @@ p {
   align-content: start;
 }
 
+.training-difficulty {
+  padding: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.16);
+}
+
+.training-difficulty.beginner {
+  border-color: rgba(103, 223, 154, 0.22);
+}
+
+.training-difficulty.intermediate {
+  border-color: rgba(240, 168, 59, 0.24);
+}
+
+.training-difficulty.advanced {
+  border-color: rgba(229, 72, 77, 0.24);
+}
+
 .training-sidebar h3 {
   margin: 0 0 8px;
   color: #8f9bad;
@@ -828,6 +847,37 @@ p {
   background: rgba(0, 0, 0, 0.22);
 }
 
+.training-controls {
+  display: grid;
+  grid-template-columns: minmax(240px, 1fr) minmax(160px, 0.34fr) minmax(120px, 0.24fr);
+  gap: 12px;
+  align-items: end;
+}
+
+.training-controls label {
+  display: grid;
+  gap: 8px;
+  padding: 14px;
+  border-radius: 8px;
+  color: #dce3ec;
+  background: rgba(0, 0, 0, 0.22);
+  font-weight: 800;
+}
+
+.training-controls input {
+  width: 100%;
+}
+
+.training-controls label strong {
+  color: #67df9a;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+.training-start-button {
+  min-height: 72px;
+  font-size: 1.25rem;
+}
+
 .training-target-card span,
 .training-readout-grid span {
   display: block;
@@ -852,12 +902,26 @@ p {
   gap: 12px;
 }
 
+.training-readout-grid.secondary strong {
+  font-size: clamp(1.2rem, 3vw, 2rem);
+}
+
 .training-readout-grid strong {
   display: block;
   margin-top: 8px;
   color: #f8fbff;
   font-size: clamp(1.5rem, 4vw, 2.7rem);
   line-height: 1;
+}
+
+.training-feedback {
+  margin: 0;
+  padding: 14px 16px;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 8px;
+  color: #f3f6fb;
+  background: rgba(0, 0, 0, 0.22);
+  font-weight: 800;
 }
 
 .learn-control-bar .solo-card,
@@ -2051,6 +2115,7 @@ p {
   .practice-fretboard-grid,
   .learning-content-grid,
   .training-layout,
+  .training-controls,
   .training-readout-grid {
     grid-template-columns: 1fr;
   }

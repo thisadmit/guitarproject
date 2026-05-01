@@ -148,7 +148,28 @@ export function useTuner(
         stabilizerStateRef.current.lastSignalAt === null ||
         timestamp - stabilizerStateRef.current.lastSignalAt > signalReleaseMs
       ) {
-        publish(createNoSignalReading(stabilizerStateRef.current), timestamp);
+        publish(
+          {
+            ...createNoSignalReading(stabilizerStateRef.current),
+            clarity: detectedPitch?.clarity ?? null,
+            inputRms: rms,
+          },
+          timestamp,
+        );
+      } else {
+        publish(
+          {
+            ...readingRef.current,
+            hasSignal: false,
+            frequency: null,
+            cents: null,
+            clarity: detectedPitch?.clarity ?? null,
+            inputRms: rms,
+            rms: 0,
+            direction: "no-signal",
+          },
+          timestamp,
+        );
       }
 
       animationFrameRef.current = requestAnimationFrame(update);

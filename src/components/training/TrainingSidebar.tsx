@@ -31,7 +31,7 @@ export function TrainingSidebar({
         );
 
         return (
-          <section key={difficulty}>
+          <section className={`training-difficulty ${difficulty}`} key={difficulty}>
             <h3>{DIFFICULTY_LABELS[difficulty]}</h3>
             <div className="training-problem-list">
               {group.map((problem) => (
