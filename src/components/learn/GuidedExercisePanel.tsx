@@ -3,10 +3,12 @@ import type { Scale } from "../../types/scale";
 import { isNoteInScale, normalizeNoteName } from "../../utils/scaleValidation";
 
 interface GuidedExercisePanelProps {
+  boxNotes: readonly string[];
   currentNoteName: string | null;
   error: string | null;
   isListening: boolean;
   onStartListening: () => void;
+  onTargetNoteChange: (note: string | null) => void;
   onToggleListening: () => void;
   scaleNotes: readonly string[];
   scaleLabel: string;
@@ -16,10 +18,12 @@ interface GuidedExercisePanelProps {
 type ExerciseStatus = "idle" | "running" | "wrong" | "complete";
 
 export function GuidedExercisePanel({
+  boxNotes,
   currentNoteName,
   error,
   isListening,
   onStartListening,
+  onTargetNoteChange,
   onToggleListening,
   scaleNotes,
   scaleLabel,
@@ -31,26 +35,61 @@ export function GuidedExercisePanel({
     "Start the exercise and play the notes in order.",
   );
   const lastHandledRef = useRef<string | null>(null);
+  const previousNoteRef = useRef<string | null>(null);
+  const wasSilentRef = useRef<boolean>(true);
+  const lastAcceptedAtRef = useRef<number>(0);
   const targetNote = scaleNotes[targetIndex] ?? null;
   const normalizedCurrentNote = normalizeNoteName(currentNoteName);
-  const scaleResult = isNoteInScale(currentNoteName, scaleNotes, scaleLabel);
+  const scaleResult = isNoteInScale(
+    currentNoteName,
+    scaleNotes,
+    scaleLabel,
+    boxNotes,
+  );
   const liveStatus = !isListening || !scaleResult.normalizedNote
     ? "idle"
-    : scaleResult.isCorrect
+    : scaleResult.isCorrect && scaleResult.isInBox !== false
       ? "correct"
       : "outside";
 
   useEffect(() => {
-    if (status !== "running" || !targetNote || !normalizedCurrentNote) {
+    onTargetNoteChange(status === "complete" ? null : targetNote);
+  }, [onTargetNoteChange, status, targetNote]);
+
+  useEffect(() => {
+    if (!normalizedCurrentNote) {
+      wasSilentRef.current = true;
+      previousNoteRef.current = null;
       return;
     }
 
-    const eventKey = `${targetIndex}:${normalizedCurrentNote}`;
-    if (lastHandledRef.current === eventKey) {
+    if (status !== "running" || !targetNote) {
+      previousNoteRef.current = normalizedCurrentNote;
+      return;
+    }
+
+    const isNewNoteInput =
+      wasSilentRef.current && previousNoteRef.current !== normalizedCurrentNote;
+
+    if (!isNewNoteInput) {
+      previousNoteRef.current = normalizedCurrentNote;
+      return;
+    }
+
+    const now = performance.now();
+    const eventKey = `${targetIndex}:${normalizedCurrentNote}:${Math.round(now)}`;
+    if (
+      lastHandledRef.current === eventKey ||
+      now - lastAcceptedAtRef.current < 120
+    ) {
+      previousNoteRef.current = normalizedCurrentNote;
       return;
     }
 
     lastHandledRef.current = eventKey;
+    lastAcceptedAtRef.current = now;
+    wasSilentRef.current = false;
+    previousNoteRef.current = normalizedCurrentNote;
 
     if (normalizedCurrentNote === targetNote) {
       const nextIndex = targetIndex + 1;
@@ -61,6 +100,7 @@ export function GuidedExercisePanel({
       } else {
         setTargetIndex(nextIndex);
         setFeedback(`Good, now play ${scaleNotes[nextIndex]}`);
+        wasSilentRef.current = false;
       }
     } else {
       setStatus("wrong");
@@ -73,6 +113,9 @@ export function GuidedExercisePanel({
     setStatus("running");
     setTargetIndex(0);
     lastHandledRef.current = null;
+    previousNoteRef.current = normalizedCurrentNote;
+    wasSilentRef.current = normalizedCurrentNote === null;
+    lastAcceptedAtRef.current = 0;
     setFeedback(`Play ${scaleNotes[0]}`);
   };
 
@@ -80,12 +123,17 @@ export function GuidedExercisePanel({
     setStatus("idle");
     setTargetIndex(0);
     lastHandledRef.current = null;
+    previousNoteRef.current = null;
+    wasSilentRef.current = true;
+    lastAcceptedAtRef.current = 0;
     setFeedback("Start the exercise and play the notes in order.");
   };
 
   const resumeAfterWrong = (): void => {
     setStatus("running");
     lastHandledRef.current = null;
+    previousNoteRef.current = normalizedCurrentNote;
+    wasSilentRef.current = normalizedCurrentNote === null;
     setFeedback(`Try ${targetNote} next`);
   };
 

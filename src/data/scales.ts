@@ -24,6 +24,15 @@ const STRING_OPEN_NOTES_BY_NUMBER = {
   1: "E",
 } as const;
 
+const STRING_OPEN_MIDI_BY_NUMBER = {
+  6: 40,
+  5: 45,
+  4: 50,
+  3: 55,
+  2: 59,
+  1: 64,
+} as const;
+
 const MINOR_PENTATONIC_BOXES: readonly ScaleBox[] = [
   {
     id: "box-1",
@@ -220,12 +229,14 @@ export function generateScaleBox(
       const fret = anchorFret + patternNote.relativeFret;
       const openNote = STRING_OPEN_NOTES_BY_NUMBER[stringPattern.stringNumber];
       const note = getNoteAtFret(openNote, fret);
+      const midi = STRING_OPEN_MIDI_BY_NUMBER[stringPattern.stringNumber] + fret;
 
       return {
         stringNumber: stringPattern.stringNumber,
         openNote,
         fret,
         note,
+        fullName: `${note}${getOctaveFromMidi(midi)}`,
         degree: patternNote.degree,
         isRoot: patternNote.degree === "1",
       };
@@ -271,4 +282,8 @@ function getPitchClass(note: string): number {
   }
 
   return index;
+}
+
+function getOctaveFromMidi(midi: number): number {
+  return Math.floor(midi / 12) - 1;
 }

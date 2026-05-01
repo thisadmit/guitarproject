@@ -1,12 +1,15 @@
 import type { FretboardNote, Scale, ScaleBox } from "../../types/scale";
 
 interface FretboardPreviewProps {
+  currentInputNote: string | null;
+  currentPitchClass: string | null;
   fretboardNotes: readonly FretboardNote[];
   scaleNotes: readonly string[];
   selectedBox: ScaleBox | null;
   selectedKey: string;
   selectedPosition: string;
   selectedScale: Scale;
+  targetNote: string | null;
 }
 
 const STRING_ORDER = [1, 2, 3, 4, 5, 6] as const;
@@ -20,12 +23,15 @@ const STRING_LABELS: Record<(typeof STRING_ORDER)[number], string> = {
 };
 
 export function FretboardPreview({
+  currentInputNote,
+  currentPitchClass,
   fretboardNotes,
   scaleNotes,
   selectedBox,
   selectedKey,
   selectedPosition,
   selectedScale,
+  targetNote,
 }: FretboardPreviewProps) {
   const frets = fretboardNotes.map((note) => note.fret);
   const minFret = frets.length > 0 ? Math.min(...frets) : 0;
@@ -89,8 +95,27 @@ export function FretboardPreview({
                   <div className="box-fret-cell" key={`${stringNumber}-${fret}`}>
                     <span className="box-string-line" />
                     {note ? (
-                      <span className={`note-dot ${note.isRoot ? "root" : ""}`}>
+                      <span
+                        className={[
+                          "note-dot",
+                          note.isRoot ? "root" : "",
+                          note.note === targetNote ? "target-note" : "",
+                          note.fullName === currentInputNote ? "current-note" : "",
+                          note.fullName === currentInputNote && note.note === targetNote
+                            ? "success-note"
+                            : "",
+                          currentInputNote &&
+                          note.fullName === currentInputNote &&
+                          targetNote &&
+                          note.note !== targetNote
+                            ? "warning-note"
+                            : "",
+                        ].join(" ")}
+                      >
                         {note.note}
+                        {note.fullName === currentInputNote ? (
+                          <small>NOW</small>
+                        ) : null}
                       </span>
                     ) : null}
                   </div>
@@ -103,6 +128,12 @@ export function FretboardPreview({
             <span className="note-dot root">{selectedKey}</span>
             <p>Root note. Start and resolve phrases here.</p>
           </div>
+          {currentPitchClass &&
+          !fretboardNotes.some((note) => note.note === currentPitchClass) ? (
+            <p className="outside-box-message">
+              {currentPitchClass} is in your input, but outside the selected box.
+            </p>
+          ) : null}
         </div>
       ) : (
         <div className="box-placeholder">

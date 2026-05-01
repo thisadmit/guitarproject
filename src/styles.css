@@ -524,6 +524,54 @@ p {
   gap: 18px;
 }
 
+.learn-control-bar {
+  display: grid;
+  grid-template-columns: minmax(360px, 1.5fr) minmax(220px, 0.75fr) minmax(260px, 0.9fr);
+  gap: 14px;
+}
+
+.learn-main-area {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(360px, 0.9fr);
+  gap: 18px;
+  align-items: stretch;
+}
+
+.learn-support-area {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 0.42fr);
+  gap: 18px;
+  align-items: stretch;
+}
+
+.learn-control-bar .solo-card,
+.learn-main-area .solo-card,
+.learn-support-area .solo-card {
+  grid-column: auto;
+}
+
+.learn-control-bar .solo-card {
+  min-height: auto;
+}
+
+.learn-control-bar .scale-library-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.learn-control-bar .scale-card {
+  min-height: 70px;
+  padding: 10px 12px;
+}
+
+.learn-control-bar .scale-card strong {
+  font-size: 1rem;
+}
+
+.learn-control-bar .scale-card span {
+  margin-top: 6px;
+  font-size: 0.8rem;
+}
+
 .solo-card {
   min-height: 250px;
   padding: 18px;
@@ -560,6 +608,11 @@ p {
 
 .guided-exercise.combined-exercise {
   grid-column: span 4;
+}
+
+.learn-main-area .fretboard-solo-preview,
+.learn-main-area .guided-exercise.combined-exercise {
+  grid-column: auto;
 }
 
 .scale-library-grid {
@@ -754,6 +807,72 @@ p {
   color: #1d1203;
   background: #f0a83b;
   box-shadow: 0 0 22px rgba(240, 168, 59, 0.6);
+}
+
+.note-dot.target-note {
+  outline: 3px solid rgba(255, 255, 255, 0.72);
+  box-shadow:
+    0 0 0 5px rgba(255, 255, 255, 0.08),
+    0 0 22px rgba(103, 223, 154, 0.46);
+}
+
+.note-dot.current-note {
+  color: #06121a;
+  background: #63c8ff;
+  border-color: rgba(99, 200, 255, 0.96);
+  animation: notePulse 900ms ease-out infinite;
+}
+
+.note-dot.success-note {
+  color: #07110c;
+  background: #9af0bc;
+  border-color: rgba(154, 240, 188, 0.96);
+}
+
+.note-dot.warning-note {
+  color: #fff7f7;
+  background: #e5484d;
+  border-color: rgba(255, 119, 119, 0.98);
+  box-shadow:
+    0 0 0 5px rgba(229, 72, 77, 0.16),
+    0 0 24px rgba(229, 72, 77, 0.68);
+}
+
+.note-dot.warning-note small {
+  color: #fff7f7;
+  background: #e5484d;
+}
+
+.note-dot small {
+  position: absolute;
+  top: -18px;
+  left: 50%;
+  padding: 2px 5px;
+  border-radius: 999px;
+  color: #06121a;
+  background: #63c8ff;
+  font-size: 0.58rem;
+  line-height: 1;
+  transform: translateX(-50%);
+}
+
+.outside-box-message {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border: 1px solid rgba(229, 72, 77, 0.5);
+  border-radius: 8px;
+  color: #ffd7d7;
+  background: rgba(229, 72, 77, 0.12);
+  font-weight: 800;
+}
+
+@keyframes notePulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(99, 200, 255, 0.48);
+  }
+  100% {
+    box-shadow: 0 0 0 12px rgba(99, 200, 255, 0);
+  }
 }
 
 .root-legend {
@@ -1507,7 +1626,10 @@ p {
 
   .learn-grid,
   .mode-panel,
-  .exercise-feedback-layout {
+  .exercise-feedback-layout,
+  .learn-control-bar,
+  .learn-main-area,
+  .learn-support-area {
     grid-template-columns: 1fr;
   }
 

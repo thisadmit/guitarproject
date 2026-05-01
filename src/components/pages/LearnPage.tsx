@@ -14,6 +14,10 @@ import { ScaleLibrary } from "../learn/ScaleLibrary";
 import { TabPreview } from "../learn/TabPreview";
 import { useAudioInput } from "../../hooks/useAudioInput";
 import { useTuner } from "../../hooks/useTuner";
+import {
+  normalizeFullNoteName,
+  normalizeNoteName,
+} from "../../utils/scaleValidation";
 
 export function LearnPage() {
   const [selectedScale, setSelectedScale] = useState(
@@ -29,8 +33,15 @@ export function LearnPage() {
   const { analyserNode, error, isRunning, sampleRate, start, stop } =
     useAudioInput();
   const tunerReading = useTuner(analyserNode, sampleRate, isRunning);
-  const currentNoteName = tunerReading.note?.fullName ?? null;
+  const currentNoteName = tunerReading.hasSignal
+    ? tunerReading.note?.fullName ?? null
+    : null;
+  const currentInputNote = normalizeFullNoteName(currentNoteName);
+  const currentPitchClass = normalizeNoteName(currentNoteName);
   const scaleLabel = `${selectedKey} ${selectedScale.name}`;
+  const [exerciseTargetNote, setExerciseTargetNote] = useState<string | null>(
+    scaleNotes[0] ?? null,
+  );
 
   const handleToggleListening = (): void => {
     if (isRunning) {
@@ -66,7 +77,7 @@ export function LearnPage() {
         </div>
       </div>
 
-      <div className="solo-learn-grid">
+      <div className="learn-control-bar">
         <ScaleLibrary
           scales={scales}
           selectedScale={selectedScale}
@@ -77,28 +88,40 @@ export function LearnPage() {
           selectedPosition={selectedPosition}
           onSelectPosition={setSelectedPosition}
         />
+      </div>
+
+      <div className="learn-main-area">
         <FretboardPreview
+          currentInputNote={currentInputNote}
+          currentPitchClass={currentPitchClass}
           fretboardNotes={fretboardNotes}
           scaleNotes={scaleNotes}
           selectedBox={selectedBox}
           selectedKey={selectedKey}
           selectedPosition={selectedPosition}
           selectedScale={selectedScale}
-        />
-        <TabPreview
-          fretboardNotes={fretboardNotes}
-          selectedBox={selectedBox}
-          selectedKey={selectedKey}
-          selectedScale={selectedScale}
+          targetNote={exerciseTargetNote}
         />
         <GuidedExercisePanel
+          key={`${selectedScale.id}-${selectedKey}-${selectedPosition}`}
+          boxNotes={fretboardNotes.map((note) => note.note)}
           currentNoteName={currentNoteName}
           error={error}
           isListening={isRunning}
           onStartListening={handleStartListening}
+          onTargetNoteChange={setExerciseTargetNote}
           onToggleListening={handleToggleListening}
-          scaleNotes={scaleNotes}
           scaleLabel={scaleLabel}
+          scaleNotes={scaleNotes}
+          selectedScale={selectedScale}
+        />
+      </div>
+
+      <div className="learn-support-area">
+        <TabPreview
+          fretboardNotes={fretboardNotes}
+          selectedBox={selectedBox}
+          selectedKey={selectedKey}
           selectedScale={selectedScale}
         />
         <MetronomePanel />
