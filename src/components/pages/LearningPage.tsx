@@ -76,8 +76,11 @@ export function LearningPage() {
         <section className="solo-card learning-explainer">
           <div className="section-heading">
             <h2>Scale Map</h2>
-            <span>{selectedScale.category}</span>
+            <span>Static</span>
           </div>
+          <p className="static-mode-note">
+            Learning is a static preview. Use Practice for live input feedback.
+          </p>
           <p>{selectedScale.description}</p>
           <dl>
             <div>

@@ -1,5 +1,6 @@
 import type { FretboardNote, Scale, ScaleBox } from "../../types/scale";
 import type { NoteInfo } from "../../utils/noteUtils";
+import { isFretboardNoteInputMatch } from "../../utils/fretboardNoteUtils";
 
 interface FretboardPreviewProps {
   currentInput: NoteInfo | null;
@@ -46,10 +47,6 @@ export function FretboardPreview({
   const frets = fretboardNotes.map((note) => note.displayFret);
   const minFret = frets.length > 0 ? Math.min(...frets) : 0;
   const maxFret = frets.length > 0 ? Math.max(...frets) : 0;
-  const displayShift =
-    fretboardNotes.length > 0
-      ? fretboardNotes[0].fret - fretboardNotes[0].displayFret
-      : 0;
   const fretRange =
     selectedBox && frets.length > 0 && minFret >= 0
       ? Array.from({ length: maxFret - minFret + 1 }, (_, index) => minFret + index)
@@ -109,8 +106,7 @@ export function FretboardPreview({
                   isExerciseRunning &&
                   currentInput !== null &&
                   !isCurrentInputInScale(currentInput, scaleNotes) &&
-                  STRING_OPEN_MIDI[stringNumber] + fret + displayShift ===
-                    currentInput.midi;
+                  STRING_OPEN_MIDI[stringNumber] + fret === currentInput.midi;
 
                 return (
                   <div className="box-fret-cell" key={`${stringNumber}-${fret}`}>
@@ -137,7 +133,9 @@ export function FretboardPreview({
           </div>
           {isExerciseRunning &&
           currentInput &&
-          !fretboardNotes.some((note) => note.midi === currentInput.midi) ? (
+          !fretboardNotes.some((note) =>
+            isFretboardNoteInputMatch(note, currentInput.midi),
+          ) ? (
             <p
               className={`outside-box-message ${
                 isCurrentInputInScale(currentInput, scaleNotes) ? "" : "wrong"
@@ -193,7 +191,8 @@ function FretboardDot({
   isExerciseRunning: boolean;
   note: FretboardNote;
 }) {
-  const isCurrent = currentInput !== null && note.midi === currentInput.midi;
+  const isCurrent =
+    currentInput !== null && isFretboardNoteInputMatch(note, currentInput.midi);
   const isWrong = isExerciseRunning && isCurrent && !isCurrentInScale;
   const visualState = getFretNoteVisualState({
     isCurrent,

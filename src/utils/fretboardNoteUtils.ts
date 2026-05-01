@@ -6,9 +6,15 @@ export function getPlayableBoxMidiNumbers(
   const midiNumbers = new Set<number>();
 
   fretboardNotes.forEach((note) => {
-    midiNumbers.add(note.midi);
-    midiNumbers.add(note.midi + note.displayFret - note.fret);
+    note.acceptedMidiNumbers.forEach((midi) => midiNumbers.add(midi));
   });
 
   return [...midiNumbers];
+}
+
+export function isFretboardNoteInputMatch(
+  note: FretboardNote,
+  inputMidi: number,
+): boolean {
+  return note.acceptedMidiNumbers.includes(inputMidi);
 }
