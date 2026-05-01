@@ -312,16 +312,14 @@ p {
 }
 
 .comparison-grid > div,
-.analysis-grid > div,
-.detected-chord {
+.analysis-grid > div {
   padding: 16px;
   border-radius: 8px;
   background: rgba(0, 0, 0, 0.22);
 }
 
 .comparison-grid span,
-.analysis-grid span,
-.detected-chord span {
+.analysis-grid span {
   display: block;
   color: #8f9bad;
   font-size: 0.82rem;
@@ -331,8 +329,7 @@ p {
 }
 
 .comparison-grid strong,
-.analysis-grid strong,
-.detected-chord strong {
+.analysis-grid strong {
   display: block;
   margin-top: 8px;
   color: #f4f7fb;
@@ -434,11 +431,6 @@ p {
   background: #f0a83b;
 }
 
-.free-play-card .detected-chord strong {
-  font-size: clamp(4rem, 10vw, 7rem);
-  line-height: 0.92;
-}
-
 .record-button {
   width: 100%;
   min-height: 64px;
@@ -499,6 +491,253 @@ p {
   text-transform: uppercase;
 }
 
+.mode-focus-badge {
+  display: grid;
+  place-items: center;
+  min-width: 148px;
+  min-height: 96px;
+  padding: 16px;
+  border: 1px solid rgba(103, 223, 154, 0.48);
+  border-radius: 8px;
+  color: #67df9a;
+  background: rgba(103, 223, 154, 0.08);
+  font-weight: 900;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+.mode-focus-badge.practice {
+  border-color: rgba(240, 168, 59, 0.52);
+  color: #f0a83b;
+  background: rgba(240, 168, 59, 0.09);
+}
+
+.solo-learn-grid,
+.solo-practice-grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.solo-card {
+  min-height: 250px;
+  padding: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  background: rgba(18, 22, 30, 0.76);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.practice-layout .solo-card {
+  background: rgba(24, 22, 18, 0.72);
+}
+
+.scale-library,
+.fretboard-solo-preview,
+.timeline-card,
+.tab-generator-preview {
+  grid-column: span 4;
+}
+
+.compact-selector,
+.tab-preview,
+.guided-exercise,
+.recording-panel,
+.current-note-display,
+.recording-summary {
+  grid-column: span 2;
+}
+
+.scale-library-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.scale-card {
+  min-height: 112px;
+  padding: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  color: #f4f7fb;
+  background: rgba(255, 255, 255, 0.04);
+  text-align: left;
+  cursor: pointer;
+}
+
+.scale-card.selected {
+  border-color: rgba(103, 223, 154, 0.68);
+  background: rgba(103, 223, 154, 0.13);
+}
+
+.scale-card strong,
+.scale-card span {
+  display: block;
+}
+
+.scale-card strong {
+  font-size: 1.25rem;
+}
+
+.scale-card span {
+  margin-top: 10px;
+  color: #8f9bad;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+.pill-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.pill-grid button {
+  min-width: 48px;
+  min-height: 40px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  color: #d9e1eb;
+  background: rgba(255, 255, 255, 0.04);
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.pill-grid button.selected {
+  border-color: rgba(103, 223, 154, 0.68);
+  color: #07110c;
+  background: #67df9a;
+}
+
+.fretboard-solo-preview p {
+  margin-bottom: 16px;
+}
+
+.solo-fretboard {
+  display: grid;
+  gap: 10px;
+}
+
+.solo-string {
+  display: grid;
+  grid-template-columns: 24px 1fr;
+  gap: 12px;
+  align-items: center;
+}
+
+.solo-string > span {
+  color: #8f9bad;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+.solo-string > div {
+  display: grid;
+  grid-template-columns: repeat(8, minmax(0, 1fr));
+  gap: 6px;
+  min-height: 28px;
+  align-items: center;
+}
+
+.solo-string i {
+  display: block;
+  height: 3px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.solo-string i.root {
+  height: 22px;
+  border-radius: 50%;
+  background: #67df9a;
+  box-shadow: 0 0 16px rgba(103, 223, 154, 0.45);
+}
+
+.tab-preview pre {
+  overflow: auto;
+  margin: 0;
+  padding: 16px;
+  border-radius: 8px;
+  color: #dce3ec;
+  background: rgba(0, 0, 0, 0.28);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+.exercise-sequence {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.exercise-sequence span {
+  display: grid;
+  place-items: center;
+  min-width: 48px;
+  min-height: 48px;
+  border-radius: 8px;
+  color: #07110c;
+  background: #67df9a;
+  font-weight: 900;
+}
+
+.current-note-display strong {
+  display: block;
+  color: #f0a83b;
+  font-size: clamp(4rem, 10vw, 7rem);
+  line-height: 0.9;
+}
+
+.recording-actions {
+  display: grid;
+  gap: 10px;
+}
+
+.secondary-button {
+  min-height: 48px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 8px;
+  color: #dce3ec;
+  background: rgba(255, 255, 255, 0.05);
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0;
+}
+
+.summary-grid div {
+  padding: 14px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.22);
+}
+
+.summary-grid dt {
+  color: #8f9bad;
+  font-size: 0.82rem;
+}
+
+.summary-grid dd {
+  margin: 8px 0 0;
+  color: #f4f7fb;
+  font-size: 1.5rem;
+  font-weight: 900;
+}
+
+.tab-placeholder-lines {
+  display: grid;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.tab-placeholder-lines span {
+  display: block;
+  height: 2px;
+  background: rgba(255, 255, 255, 0.16);
+}
+
 .learn-grid {
   display: grid;
   grid-template-columns: minmax(280px, 1fr) minmax(280px, 1fr);
@@ -530,67 +769,12 @@ p {
   text-transform: uppercase;
 }
 
-.chord-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
-}
-
-.chord-button {
-  min-height: 86px;
-  padding: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 8px;
-  color: #f4f7fb;
-  background: rgba(255, 255, 255, 0.04);
-  cursor: pointer;
-  text-align: left;
-}
-
-.chord-button.selected {
-  border-color: rgba(103, 223, 154, 0.7);
-  background: rgba(103, 223, 154, 0.13);
-  box-shadow: 0 0 22px rgba(103, 223, 154, 0.1);
-}
-
-.chord-button strong,
-.chord-button span {
-  display: block;
-}
-
-.chord-button strong {
-  font-size: 2.2rem;
-  line-height: 1;
-}
-
-.chord-button span {
-  margin-top: 8px;
-  color: #8f9bad;
-  text-transform: uppercase;
-}
-
-.selected-chord-summary {
-  margin-top: 18px;
-  padding: 16px;
-  border-radius: 8px;
-  background: rgba(0, 0, 0, 0.24);
-}
-
-.selected-chord-summary span,
 .lesson-tip span {
   color: #8f9bad;
   font-size: 0.82rem;
   font-weight: 800;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-}
-
-.selected-chord-summary strong {
-  display: block;
-  margin-top: 8px;
-  color: #67df9a;
-  font-size: 3rem;
-  line-height: 1;
 }
 
 .recognition-placeholder {
@@ -1093,7 +1277,6 @@ p {
   }
 
   .navigation,
-  .chord-grid,
   .submode-tabs,
   .comparison-grid,
   .analysis-grid {

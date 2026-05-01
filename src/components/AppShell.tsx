@@ -9,12 +9,12 @@ interface AppShellProps {
 
 const MODE_COPY: Record<AppMode, { title: string; subtitle: string }> = {
   learn: {
-    title: "Guitar Learning Studio",
-    subtitle: "Guided chord and solo learning with goals, evaluation, and feedback.",
+    title: "Solo Guitar Learning Studio",
+    subtitle: "Learn scales, fretboard positions, tab shapes, and guided solo exercises.",
   },
   practice: {
     title: "Practice Mode",
-    subtitle: "Free play analysis and recording without right-or-wrong grading.",
+    subtitle: "Record solo ideas, review note timelines, and prepare future tab generation.",
   },
   tuner: {
     title: "Tuner Mode",
@@ -29,7 +29,7 @@ export function AppShell({ activeMode, onModeChange, children }: AppShellProps) 
     <main className="app-shell">
       <header className="studio-header">
         <div>
-          <p className="eyebrow">Guitar Learning Studio</p>
+          <p className="eyebrow">Solo Guitar Learning Studio</p>
           <h1>{copy.title}</h1>
           <p>{copy.subtitle}</p>
         </div>

@@ -9,12 +9,12 @@ const navItems: readonly { id: AppMode; label: string; description: string }[] =
   {
     id: "learn",
     label: "Learn",
-    description: "Goals and feedback",
+    description: "Scales and positions",
   },
   {
     id: "practice",
     label: "Practice",
-    description: "Free play records",
+    description: "Solo recording",
   },
   {
     id: "tuner",
