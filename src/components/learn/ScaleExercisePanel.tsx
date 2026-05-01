@@ -1,6 +1,12 @@
+import { useEffect, useMemo, useState } from "react";
 import type { Scale } from "../../types/scale";
 import type { NoteInfo } from "../../utils/noteUtils";
-import { isNoteInScale } from "../../utils/scaleValidation";
+import {
+  isNoteInScale,
+  type ScaleValidationResult,
+} from "../../utils/scaleValidation";
+
+const NO_INPUT_PROMPT_DELAY_MS = 5000;
 
 interface ScaleExercisePanelProps {
   boxMidiNumbers: readonly number[];
@@ -31,20 +37,66 @@ export function ScaleExercisePanel({
   scaleLabel,
   selectedScale,
 }: ScaleExercisePanelProps) {
-  const scaleResult = isNoteInScale(
-    currentNoteName,
-    scaleNotes,
-    scaleLabel,
-    boxMidiNumbers,
-    currentInput?.midi ?? null,
-    isListening,
+  const scaleResult = useMemo(
+    () =>
+      isNoteInScale(
+        currentNoteName,
+        scaleNotes,
+        scaleLabel,
+        boxMidiNumbers,
+        currentInput?.midi ?? null,
+        isListening,
+      ),
+    [
+      boxMidiNumbers,
+      currentInput?.midi,
+      currentNoteName,
+      isListening,
+      scaleLabel,
+      scaleNotes,
+    ],
   );
+  const [latestResult, setLatestResult] =
+    useState<ScaleValidationResult | null>(null);
+  const [showNoInputPrompt, setShowNoInputPrompt] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (!isListening) {
+      setLatestResult(null);
+      setShowNoInputPrompt(false);
+      return;
+    }
+
+    if (currentNoteName && scaleResult.status !== "no-signal") {
+      setLatestResult(scaleResult);
+      setShowNoInputPrompt(false);
+      return;
+    }
+
+    setShowNoInputPrompt(false);
+    const timeoutId = window.setTimeout(() => {
+      setShowNoInputPrompt(true);
+    }, NO_INPUT_PROMPT_DELAY_MS);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [currentNoteName, isListening, scaleResult]);
+
+  const displayResult =
+    isListening && !currentNoteName && !showNoInputPrompt
+      ? latestResult ?? {
+          ...scaleResult,
+          message: "Listening...",
+          status: "no-signal" as const,
+        }
+      : scaleResult;
   const liveStatus =
-    scaleResult.status === "in-scale"
+    displayResult.status === "in-scale"
       ? "correct"
-      : scaleResult.status === "wrong"
+      : displayResult.status === "wrong"
         ? "wrong"
-        : scaleResult.status;
+        : displayResult.status;
 
   return (
     <section className={`solo-card guided-exercise combined-exercise ${liveStatus}`}>
@@ -63,7 +115,7 @@ export function ScaleExercisePanel({
           <div className="exercise-sequence">
             {scaleNotes.map((note) => (
               <span
-                className={note === scaleResult.normalizedNote ? "active" : ""}
+                className={note === displayResult.normalizedNote ? "active" : ""}
                 key={note}
               >
                 {note}
@@ -73,10 +125,10 @@ export function ScaleExercisePanel({
 
           <div className="exercise-target">
             <span>Scale status</span>
-            <strong>{getStatusLabel(scaleResult.status)}</strong>
+            <strong>{getStatusLabel(displayResult.status, displayResult.message)}</strong>
           </div>
 
-          <p className="feedback-message">{scaleResult.message}</p>
+          <p className="feedback-message">{displayResult.message}</p>
 
           <div className="exercise-actions">
             <button
@@ -108,7 +160,7 @@ export function ScaleExercisePanel({
 
           <div className="live-note-readout">
             <span>Current note</span>
-            <strong>{scaleResult.displayNote ?? "--"}</strong>
+            <strong>{displayResult.displayNote ?? "--"}</strong>
           </div>
 
           <div className="input-monitor">
@@ -123,12 +175,12 @@ export function ScaleExercisePanel({
             <small>RMS {rms > 0 ? rms.toFixed(3) : "--"}</small>
           </div>
 
-          <p className="feedback-message">{scaleResult.message}</p>
+          <p className="feedback-message">{displayResult.message}</p>
 
           <div className="allowed-note-row">
             {scaleNotes.map((note) => (
               <span
-                className={note === scaleResult.normalizedNote ? "active" : ""}
+                className={note === displayResult.normalizedNote ? "active" : ""}
                 key={note}
               >
                 {note}
@@ -141,7 +193,11 @@ export function ScaleExercisePanel({
   );
 }
 
-function getStatusLabel(status: string): string {
+function getStatusLabel(status: string, message: string): string {
+  if (message === "Listening...") {
+    return "Listening";
+  }
+
   switch (status) {
     case "in-scale":
       return "OK";
