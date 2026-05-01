@@ -926,7 +926,7 @@ p {
   font-weight: 900;
 }
 
-.exercise-sequence span.target {
+.exercise-sequence span.active {
   outline: 3px solid rgba(255, 255, 255, 0.72);
   box-shadow: 0 0 22px rgba(103, 223, 154, 0.42);
 }
@@ -943,9 +943,13 @@ p {
 }
 
 .live-scale-feedback.outside,
-.guided-exercise.combined-exercise.outside,
-.guided-exercise.wrong {
+.guided-exercise.combined-exercise.outside {
   border-color: rgba(240, 168, 59, 0.52);
+}
+
+.live-scale-feedback.wrong,
+.guided-exercise.combined-exercise.wrong {
+  border-color: rgba(229, 72, 77, 0.62);
 }
 
 .exercise-feedback-layout {
@@ -1029,8 +1033,13 @@ p {
 }
 
 .live-scale-feedback.outside .live-note-readout strong,
-.guided-exercise.wrong .exercise-target strong {
+.guided-exercise.combined-exercise.outside .exercise-target strong {
   color: #f0a83b;
+}
+
+.live-scale-feedback.wrong .live-note-readout strong,
+.guided-exercise.combined-exercise.wrong .exercise-target strong {
+  color: #ff7a7d;
 }
 
 .feedback-message {

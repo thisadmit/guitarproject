@@ -8,6 +8,7 @@ import {
   createNoSignalReading,
   DEFAULT_STABILIZER_CONFIG,
   stabilizePitchSample,
+  type StabilizerConfig,
   type StabilizedTunerReading,
 } from "../utils/tunerStabilizer";
 
@@ -30,7 +31,27 @@ export function useTuner(
   analyserNode: AnalyserNode | null,
   sampleRate: number | null,
   isRunning: boolean,
+  configOverrides: Partial<StabilizerConfig> = {},
 ): StabilizedTunerReading {
+  const rmsThreshold =
+    configOverrides.rmsThreshold ?? DEFAULT_STABILIZER_CONFIG.rmsThreshold;
+  const minClarity =
+    configOverrides.minClarity ?? DEFAULT_STABILIZER_CONFIG.minClarity;
+  const attackIgnoreMs =
+    configOverrides.attackIgnoreMs ?? DEFAULT_STABILIZER_CONFIG.attackIgnoreMs;
+  const smoothingFactor =
+    configOverrides.smoothingFactor ??
+    DEFAULT_STABILIZER_CONFIG.smoothingFactor;
+  const noteStableFrames =
+    configOverrides.noteStableFrames ??
+    DEFAULT_STABILIZER_CONFIG.noteStableFrames;
+  const maxFrequencyJumpRatio =
+    configOverrides.maxFrequencyJumpRatio ??
+    DEFAULT_STABILIZER_CONFIG.maxFrequencyJumpRatio;
+  const signalReleaseMs =
+    configOverrides.signalReleaseMs ??
+    DEFAULT_STABILIZER_CONFIG.signalReleaseMs;
+
   const [reading, setReading] = useState<StabilizedTunerReading>(INITIAL_READING);
   const readingRef = useRef<StabilizedTunerReading>(INITIAL_READING);
   const stabilizerStateRef = useRef(createInitialStabilizerState());
@@ -63,10 +84,10 @@ export function useTuner(
 
       const rms = calculateRms(buffer);
       const detectedPitch =
-        rms >= DEFAULT_STABILIZER_CONFIG.rmsThreshold
+        rms >= rmsThreshold
           ? detectPitchAutoCorrelation(buffer, sampleRate, {
-              rmsThreshold: DEFAULT_STABILIZER_CONFIG.rmsThreshold,
-              clarityThreshold: DEFAULT_STABILIZER_CONFIG.minClarity,
+              rmsThreshold,
+              clarityThreshold: minClarity,
             })
           : null;
 
@@ -80,11 +101,20 @@ export function useTuner(
               timestamp,
             }
           : null,
+        {
+          rmsThreshold,
+          minClarity,
+          attackIgnoreMs,
+          smoothingFactor,
+          noteStableFrames,
+          maxFrequencyJumpRatio,
+          signalReleaseMs,
+        },
       );
 
       if (stabilizedReading) {
         publish(stabilizedReading, timestamp);
-      } else if (rms >= DEFAULT_STABILIZER_CONFIG.rmsThreshold) {
+      } else if (rms >= rmsThreshold) {
         // Surface raw input activity while the stabilizer is still waiting for
         // a reliable note. Learn uses this to show that the mic is listening.
         publish(
@@ -104,8 +134,7 @@ export function useTuner(
         );
       } else if (
         stabilizerStateRef.current.lastSignalAt === null ||
-        timestamp - stabilizerStateRef.current.lastSignalAt >
-          DEFAULT_STABILIZER_CONFIG.signalReleaseMs
+        timestamp - stabilizerStateRef.current.lastSignalAt > signalReleaseMs
       ) {
         publish(createNoSignalReading(stabilizerStateRef.current), timestamp);
       }
@@ -120,7 +149,18 @@ export function useTuner(
         cancelAnimationFrame(animationFrameRef.current);
       }
     };
-  }, [analyserNode, sampleRate, isRunning]);
+  }, [
+    analyserNode,
+    sampleRate,
+    isRunning,
+    rmsThreshold,
+    minClarity,
+    attackIgnoreMs,
+    smoothingFactor,
+    noteStableFrames,
+    maxFrequencyJumpRatio,
+    signalReleaseMs,
+  ]);
 
   return reading;
 }

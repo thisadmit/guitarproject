@@ -6,14 +6,22 @@ import {
   scales,
 } from "../../data/scales";
 import { FretboardPreview } from "../learn/FretboardPreview";
-import { GuidedExercisePanel } from "../learn/GuidedExercisePanel";
 import { KeySelector } from "../learn/KeySelector";
 import { MetronomePanel } from "../learn/MetronomePanel";
 import { PositionSelector } from "../learn/PositionSelector";
 import { ScaleLibrary } from "../learn/ScaleLibrary";
+import { ScaleExercisePanel } from "../learn/ScaleExercisePanel";
 import { TabPreview } from "../learn/TabPreview";
 import { useAudioInput } from "../../hooks/useAudioInput";
 import { useTuner } from "../../hooks/useTuner";
+import type { StabilizerConfig } from "../../utils/tunerStabilizer";
+
+const LEARN_TUNER_CONFIG: Partial<StabilizerConfig> = {
+  attackIgnoreMs: 40,
+  minClarity: 0.55,
+  noteStableFrames: 2,
+  signalReleaseMs: 250,
+};
 
 export function LearnPage() {
   const [selectedScale, setSelectedScale] = useState(
@@ -28,9 +36,16 @@ export function LearnPage() {
     : [];
   const { analyserNode, error, isRunning, sampleRate, start, stop } =
     useAudioInput();
-  const tunerReading = useTuner(analyserNode, sampleRate, isRunning);
+  const tunerReading = useTuner(
+    analyserNode,
+    sampleRate,
+    isRunning,
+    LEARN_TUNER_CONFIG,
+  );
   const currentInput = tunerReading.hasSignal ? tunerReading.note : null;
-  const currentNoteName = currentInput?.fullName ?? null;
+  const currentNoteName = tunerReading.hasSignal
+    ? tunerReading.note?.fullName ?? null
+    : null;
   const scaleLabel = `${selectedKey} ${selectedScale.name}`;
 
   const handleToggleListening = (): void => {
@@ -55,7 +70,7 @@ export function LearnPage() {
           <strong>Scale, position, phrasing</strong>
           <p>
             Build solo vocabulary by choosing a scale, key, fretboard box, and
-            guided exercise target.
+            checking whether your notes belong to the selected scale.
           </p>
           <p className="learn-selection-summary">
             {selectedKey} {selectedScale.name} - {selectedPosition} - Notes:{" "}
@@ -91,7 +106,7 @@ export function LearnPage() {
           selectedPosition={selectedPosition}
           selectedScale={selectedScale}
         />
-        <GuidedExercisePanel
+        <ScaleExercisePanel
           key={`${selectedScale.id}-${selectedKey}-${selectedPosition}`}
           boxMidiNumbers={fretboardNotes.map((note) => note.midi)}
           currentInput={currentInput}

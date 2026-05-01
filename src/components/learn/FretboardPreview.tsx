@@ -22,6 +22,15 @@ const STRING_LABELS: Record<(typeof STRING_ORDER)[number], string> = {
   6: "E",
 };
 
+const STRING_OPEN_MIDI: Record<(typeof STRING_ORDER)[number], number> = {
+  6: 40,
+  5: 45,
+  4: 50,
+  3: 55,
+  2: 59,
+  1: 64,
+};
+
 export function FretboardPreview({
   currentInput,
   fretboardNotes,
@@ -89,6 +98,11 @@ export function FretboardPreview({
                     candidate.stringNumber === stringNumber &&
                     candidate.fret === fret,
                 );
+                const isWrongInputCell =
+                  isExerciseRunning &&
+                  currentInput !== null &&
+                  !isCurrentInputInScale(currentInput, scaleNotes) &&
+                  STRING_OPEN_MIDI[stringNumber] + fret === currentInput.midi;
 
                 return (
                   <div className="box-fret-cell" key={`${stringNumber}-${fret}`}>
@@ -100,6 +114,8 @@ export function FretboardPreview({
                         isExerciseRunning={isExerciseRunning}
                         note={note}
                       />
+                    ) : isWrongInputCell ? (
+                      <WrongInputDot currentInput={currentInput} fret={fret} stringNumber={stringNumber} />
                     ) : null}
                   </div>
                 );
@@ -135,6 +151,26 @@ export function FretboardPreview({
         </div>
       )}
     </section>
+  );
+}
+
+function WrongInputDot({
+  currentInput,
+  fret,
+  stringNumber,
+}: {
+  currentInput: NoteInfo;
+  fret: number;
+  stringNumber: (typeof STRING_ORDER)[number];
+}) {
+  return (
+    <span
+      className="fret-note fret-note--wrong"
+      title={`${currentInput.fullName} - string ${stringNumber}, fret ${fret}`}
+    >
+      {currentInput.note}
+      <small>OUT</small>
+    </span>
   );
 }
 

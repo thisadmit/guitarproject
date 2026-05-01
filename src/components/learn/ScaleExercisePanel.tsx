@@ -17,7 +17,7 @@ interface ScaleExercisePanelProps {
   selectedScale: Scale;
 }
 
-export function GuidedExercisePanel({
+export function ScaleExercisePanel({
   boxMidiNumbers,
   currentInput,
   currentNoteName,
@@ -43,7 +43,7 @@ export function GuidedExercisePanel({
     scaleResult.status === "in-scale"
       ? "correct"
       : scaleResult.status === "wrong"
-        ? "outside"
+        ? "wrong"
         : scaleResult.status;
 
   return (
@@ -63,7 +63,7 @@ export function GuidedExercisePanel({
           <div className="exercise-sequence">
             {scaleNotes.map((note) => (
               <span
-                className={note === scaleResult.normalizedNote ? "target" : ""}
+                className={note === scaleResult.normalizedNote ? "active" : ""}
                 key={note}
               >
                 {note}
@@ -91,8 +91,9 @@ export function GuidedExercisePanel({
               className="secondary-button"
               type="button"
               onClick={onToggleListening}
+              disabled={!isListening}
             >
-              {isListening ? "Stop Exercise" : "Start Listening"}
+              Stop Exercise
             </button>
           </div>
         </div>
