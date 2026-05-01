@@ -1,6 +1,7 @@
 import { useState } from "react";
 import {
-  getScaleBoxByName,
+  getPositionVariantResult,
+  getReusableScaleBoxByName,
   getScaleNotes,
   getTransposedBoxNotes,
   scales,
@@ -9,11 +10,13 @@ import { FretboardPreview } from "../learn/FretboardPreview";
 import { KeySelector } from "../learn/KeySelector";
 import { MetronomePanel } from "../learn/MetronomePanel";
 import { PositionSelector } from "../learn/PositionSelector";
+import { PositionVariantSelector } from "../learn/PositionVariantSelector";
 import { ScaleLibrary } from "../learn/ScaleLibrary";
 import { ScaleExercisePanel } from "../learn/ScaleExercisePanel";
 import { TabPreview } from "../learn/TabPreview";
 import { useAudioInput } from "../../hooks/useAudioInput";
 import { useTuner } from "../../hooks/useTuner";
+import type { PositionVariant } from "../../types/scale";
 import type { StabilizerConfig } from "../../utils/tunerStabilizer";
 
 const LEARN_TUNER_CONFIG: Partial<StabilizerConfig> = {
@@ -29,10 +32,25 @@ export function LearnPage() {
   );
   const [selectedKey, setSelectedKey] = useState<string>("A");
   const [selectedPosition, setSelectedPosition] = useState<string>("Box 1");
-  const selectedBox = getScaleBoxByName(selectedScale, selectedPosition);
+  const [selectedVariant, setSelectedVariant] =
+    useState<PositionVariant>("auto");
+  const selectedBox = getReusableScaleBoxByName(selectedPosition);
+  const positionVariantResult = selectedBox
+    ? getPositionVariantResult(
+        selectedKey,
+        selectedScale,
+        selectedBox,
+        selectedVariant,
+      )
+    : null;
   const scaleNotes = getScaleNotes(selectedScale, selectedKey);
   const fretboardNotes = selectedBox
-    ? getTransposedBoxNotes(selectedScale, selectedBox, selectedKey)
+    ? getTransposedBoxNotes(
+        selectedScale,
+        selectedBox,
+        selectedKey,
+        selectedVariant,
+      )
     : [];
   const { analyserNode, error, isRunning, sampleRate, start, stop } =
     useAudioInput();
@@ -93,6 +111,10 @@ export function LearnPage() {
           selectedPosition={selectedPosition}
           onSelectPosition={setSelectedPosition}
         />
+        <PositionVariantSelector
+          selectedVariant={selectedVariant}
+          onSelectVariant={setSelectedVariant}
+        />
       </div>
 
       <div className="learn-main-area">
@@ -104,11 +126,14 @@ export function LearnPage() {
           selectedBox={selectedBox}
           selectedKey={selectedKey}
           selectedPosition={selectedPosition}
+          positionVariantMessage={positionVariantResult?.message ?? null}
           selectedScale={selectedScale}
         />
         <ScaleExercisePanel
-          key={`${selectedScale.id}-${selectedKey}-${selectedPosition}`}
-          boxMidiNumbers={fretboardNotes.map((note) => note.midi)}
+          key={`${selectedScale.id}-${selectedKey}-${selectedPosition}-${selectedVariant}`}
+          boxMidiNumbers={fretboardNotes
+            .filter((note) => note.isInBox)
+            .map((note) => note.midi)}
           currentInput={currentInput}
           currentNoteName={currentNoteName}
           error={error}
@@ -128,6 +153,7 @@ export function LearnPage() {
           fretboardNotes={fretboardNotes}
           selectedBox={selectedBox}
           selectedKey={selectedKey}
+          positionVariantMessage={positionVariantResult?.message ?? null}
           selectedScale={selectedScale}
         />
         <MetronomePanel />

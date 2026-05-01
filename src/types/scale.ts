@@ -36,10 +36,20 @@ export interface FretboardNote {
   stringNumber: 1 | 2 | 3 | 4 | 5 | 6;
   openNote: string;
   fret: number;
+  displayFret: number;
   note: string;
   octave: number;
   fullName: string;
   midi: number;
   degree: string;
   isRoot: boolean;
+  isInBox: boolean;
+}
+
+export type PositionVariant = "auto" | "low" | "high";
+
+export interface PositionVariantResult {
+  shift: 0 | -12;
+  message: string | null;
+  variant: PositionVariant;
 }

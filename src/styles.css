@@ -526,7 +526,11 @@ p {
 
 .learn-control-bar {
   display: grid;
-  grid-template-columns: minmax(360px, 1.5fr) minmax(220px, 0.75fr) minmax(260px, 0.9fr);
+  grid-template-columns:
+    minmax(320px, 1.35fr)
+    minmax(200px, 0.72fr)
+    minmax(230px, 0.82fr)
+    minmax(180px, 0.62fr);
   gap: 14px;
 }
 
@@ -806,6 +810,13 @@ p {
   color: #07110c;
   background: #67df9a;
   border-color: rgba(103, 223, 154, 0.68);
+}
+
+.fret-note--outside {
+  color: rgba(7, 17, 12, 0.82);
+  background: rgba(103, 223, 154, 0.36);
+  border-color: rgba(103, 223, 154, 0.26);
+  box-shadow: none;
 }
 
 .fret-note--root {

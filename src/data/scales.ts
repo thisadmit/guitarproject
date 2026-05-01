@@ -1,4 +1,10 @@
-import type { FretboardNote, Scale, ScaleBox } from "../types/scale";
+import type {
+  FretboardNote,
+  PositionVariant,
+  PositionVariantResult,
+  Scale,
+  ScaleBox,
+} from "../types/scale";
 
 const CHROMATIC_NOTES = [
   "C",
@@ -32,6 +38,9 @@ const STRING_OPEN_MIDI_BY_NUMBER = {
   2: 59,
   1: 64,
 } as const;
+
+const MINOR_PENTATONIC_FORMULA = ["1", "b3", "4", "5", "b7"] as const;
+const MINOR_PENTATONIC_INTERVALS = [0, 3, 5, 7, 10] as const;
 
 const MINOR_PENTATONIC_BOXES: readonly ScaleBox[] = [
   {
@@ -206,21 +215,107 @@ export function getScaleBoxByName(
   return scale.boxes?.find((box) => box.name === boxName) ?? null;
 }
 
+export function getReusableScaleBoxByName(boxName: string): ScaleBox | null {
+  return MINOR_PENTATONIC_BOXES.find((box) => box.name === boxName) ?? null;
+}
+
 export function getTransposedBoxNotes(
   scale: Scale,
   box: ScaleBox,
   keyName: string,
+  positionVariant: PositionVariant = "auto",
 ): FretboardNote[] {
-  return generateScaleBox(keyName, scale, box);
+  return generateScaleBox(keyName, scale, box, positionVariant);
+}
+
+export function getPositionVariantResult(
+  rootKey: string,
+  scale: Scale,
+  box: ScaleBox,
+  positionVariant: PositionVariant,
+): PositionVariantResult {
+  const boxNotes = generateBoxPatternNotes(rootKey, scale, box);
+  const rootFret = getRootFretOnString(rootKey, box.anchorString);
+  const maxFret = Math.max(...boxNotes.map((note) => note.fret));
+  const canShiftLow = boxNotes.every((note) => note.fret - 12 >= 0);
+  const shouldAutoShift = rootFret > 12 || maxFret > 15;
+  const shouldShift =
+    positionVariant === "low" || (positionVariant === "auto" && shouldAutoShift);
+  const shift = shouldShift && canShiftLow ? -12 : 0;
+
+  return {
+    shift,
+    variant: positionVariant,
+    message:
+      shift === -12
+        ? "Showing lower octave position (-12 frets)"
+        : positionVariant === "high"
+          ? "Showing original high position"
+          : null,
+  };
 }
 
 export function generateScaleBox(
   rootKey: string,
   scale: Scale,
   box: ScaleBox,
+  positionVariant: PositionVariant = "auto",
+): FretboardNote[] {
+  const boxPatternNotes = generateBoxPatternNotes(rootKey, scale, box);
+  const boxMidiNumbers = new Set(boxPatternNotes.map((note) => note.midi));
+  const variant = getPositionVariantResult(rootKey, scale, box, positionVariant);
+  const displayedBoxFrets = boxPatternNotes.map(
+    (note) => note.fret + variant.shift,
+  );
+  const minDisplayFret = Math.min(...displayedBoxFrets);
+  const maxDisplayFret = Math.max(...displayedBoxFrets);
+  const minActualFret = minDisplayFret - variant.shift;
+  const maxActualFret = maxDisplayFret - variant.shift;
+  const scaleNotes = getScaleNotes(scale, rootKey);
+
+  return ([6, 5, 4, 3, 2, 1] as const).flatMap((stringNumber) => {
+    const openNote = STRING_OPEN_NOTES_BY_NUMBER[stringNumber];
+    const openMidi = STRING_OPEN_MIDI_BY_NUMBER[stringNumber];
+
+    return Array.from(
+      { length: maxActualFret - minActualFret + 1 },
+      (_, index): FretboardNote | null => {
+        const fret = minActualFret + index;
+        const note = getNoteAtFret(openNote, fret);
+        const midi = openMidi + fret;
+        const degree = getDegreeForNote(scale, rootKey, note);
+
+        if (!scaleNotes.includes(note) || degree === null) {
+          return null;
+        }
+
+        const octave = getOctaveFromMidi(midi);
+
+        return {
+          stringNumber,
+          openNote,
+          fret,
+          displayFret: fret + variant.shift,
+          note,
+          octave,
+          fullName: `${note}${octave}`,
+          midi,
+          degree,
+          isRoot: degree === "1",
+          isInBox: boxMidiNumbers.has(midi),
+        };
+      },
+    ).filter((note): note is FretboardNote => note !== null);
+  });
+}
+
+function generateBoxPatternNotes(
+  rootKey: string,
+  _scale: Scale,
+  box: ScaleBox,
 ): FretboardNote[] {
   const rootFret = getRootFretOnString(rootKey, box.anchorString);
-  const anchorDegreeOffset = getDegreeInterval(scale, box.anchorDegree);
+  const anchorDegreeOffset = getMinorPentatonicDegreeInterval(box.anchorDegree);
   const anchorFret =
     rootFret + anchorDegreeOffset - box.anchorRelativeFret;
 
@@ -235,12 +330,14 @@ export function generateScaleBox(
         stringNumber: stringPattern.stringNumber,
         openNote,
         fret,
+        displayFret: fret,
         note,
         octave: getOctaveFromMidi(midi),
         fullName: `${note}${getOctaveFromMidi(midi)}`,
         midi,
         degree: patternNote.degree,
         isRoot: patternNote.degree === "1",
+        isInBox: true,
       };
     }),
   );
@@ -269,11 +366,36 @@ function getDegreeInterval(scale: Scale, degree: string): number {
   return scale.intervals[degreeIndex];
 }
 
+function getMinorPentatonicDegreeInterval(degree: string): number {
+  const degreeIndex = MINOR_PENTATONIC_FORMULA.indexOf(
+    degree as (typeof MINOR_PENTATONIC_FORMULA)[number],
+  );
+
+  if (degreeIndex < 0) {
+    throw new Error(`Degree ${degree} is not part of Minor Pentatonic`);
+  }
+
+  return MINOR_PENTATONIC_INTERVALS[degreeIndex];
+}
+
 function getNoteAtFret(openNote: string, fret: number): string {
   return CHROMATIC_NOTES[
     (getPitchClass(openNote) + fret + CHROMATIC_NOTES.length * 3) %
       CHROMATIC_NOTES.length
   ];
+}
+
+function getDegreeForNote(
+  scale: Scale,
+  rootKey: string,
+  note: string,
+): string | null {
+  const interval =
+    (getPitchClass(note) - getPitchClass(rootKey) + CHROMATIC_NOTES.length) %
+    CHROMATIC_NOTES.length;
+  const intervalIndex = scale.intervals.indexOf(interval);
+
+  return intervalIndex >= 0 ? scale.formula[intervalIndex] : null;
 }
 
 function getPitchClass(note: string): number {

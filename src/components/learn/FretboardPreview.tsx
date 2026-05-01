@@ -9,6 +9,7 @@ interface FretboardPreviewProps {
   selectedBox: ScaleBox | null;
   selectedKey: string;
   selectedPosition: string;
+  positionVariantMessage: string | null;
   selectedScale: Scale;
 }
 
@@ -39,13 +40,18 @@ export function FretboardPreview({
   selectedBox,
   selectedKey,
   selectedPosition,
+  positionVariantMessage,
   selectedScale,
 }: FretboardPreviewProps) {
-  const frets = fretboardNotes.map((note) => note.fret);
+  const frets = fretboardNotes.map((note) => note.displayFret);
   const minFret = frets.length > 0 ? Math.min(...frets) : 0;
   const maxFret = frets.length > 0 ? Math.max(...frets) : 0;
+  const displayShift =
+    fretboardNotes.length > 0
+      ? fretboardNotes[0].fret - fretboardNotes[0].displayFret
+      : 0;
   const fretRange =
-    selectedBox && minFret > 0
+    selectedBox && frets.length > 0 && minFret >= 0
       ? Array.from({ length: maxFret - minFret + 1 }, (_, index) => minFret + index)
       : [];
   const gridTemplateColumns = `72px repeat(${Math.max(
@@ -72,6 +78,7 @@ export function FretboardPreview({
           {selectedBox?.description ??
             "Box data for this scale is prepared as a future expansion."}
         </p>
+        {positionVariantMessage ? <p>{positionVariantMessage}</p> : null}
       </div>
 
       {selectedBox ? (
@@ -96,13 +103,14 @@ export function FretboardPreview({
                 const note = fretboardNotes.find(
                   (candidate) =>
                     candidate.stringNumber === stringNumber &&
-                    candidate.fret === fret,
+                    candidate.displayFret === fret,
                 );
                 const isWrongInputCell =
                   isExerciseRunning &&
                   currentInput !== null &&
                   !isCurrentInputInScale(currentInput, scaleNotes) &&
-                  STRING_OPEN_MIDI[stringNumber] + fret === currentInput.midi;
+                  STRING_OPEN_MIDI[stringNumber] + fret + displayShift ===
+                    currentInput.midi;
 
                 return (
                   <div className="box-fret-cell" key={`${stringNumber}-${fret}`}>
@@ -189,6 +197,7 @@ function FretboardDot({
   const isWrong = isExerciseRunning && isCurrent && !isCurrentInScale;
   const visualState = getFretNoteVisualState({
     isCurrent,
+    isInBox: note.isInBox,
     isRoot: note.isRoot,
     isWrong,
   });
@@ -196,7 +205,7 @@ function FretboardDot({
   return (
     <span
       className={`fret-note fret-note--${visualState}`}
-      title={`${note.fullName} - string ${note.stringNumber}, fret ${note.fret}`}
+      title={`${note.fullName} - string ${note.stringNumber}, fret ${note.displayFret}`}
     >
       {note.note}
       {isCurrent ? <small>NOW</small> : null}
@@ -204,14 +213,16 @@ function FretboardDot({
   );
 }
 
-type FretNoteVisualState = "wrong" | "current" | "root" | "normal";
+type FretNoteVisualState = "wrong" | "current" | "root" | "normal" | "outside";
 
 function getFretNoteVisualState({
   isCurrent,
+  isInBox,
   isRoot,
   isWrong,
 }: {
   isCurrent: boolean;
+  isInBox: boolean;
   isRoot: boolean;
   isWrong: boolean;
 }): FretNoteVisualState {
@@ -225,6 +236,10 @@ function getFretNoteVisualState({
 
   if (isRoot) {
     return "root";
+  }
+
+  if (!isInBox) {
+    return "outside";
   }
 
   return "normal";

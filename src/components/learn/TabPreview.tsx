@@ -2,6 +2,7 @@ import type { FretboardNote, Scale, ScaleBox } from "../../types/scale";
 
 interface TabPreviewProps {
   fretboardNotes: readonly FretboardNote[];
+  positionVariantMessage: string | null;
   selectedBox: ScaleBox | null;
   selectedKey: string;
   selectedScale: Scale;
@@ -18,6 +19,7 @@ const TAB_STRING_ORDER = [
 
 export function TabPreview({
   fretboardNotes,
+  positionVariantMessage,
   selectedBox,
   selectedKey,
   selectedScale,
@@ -34,6 +36,7 @@ export function TabPreview({
         {selectedKey} {selectedScale.name} - Formula:{" "}
         {selectedScale.formula.join(" ")}
       </p>
+      {positionVariantMessage ? <p>{positionVariantMessage}</p> : null}
       <pre aria-label="Scale tab preview">
         {tab ?? "Tab data for this scale box is coming soon."}
       </pre>
@@ -47,10 +50,10 @@ function buildAscendingBoxTab(fretboardNotes: readonly FretboardNote[]): string 
   return TAB_STRING_ORDER.map(({ stringNumber, label }) => {
     const stringNotes = fretboardNotes
       .filter((note) => note.stringNumber === stringNumber)
-      .sort((left, right) => left.fret - right.fret);
+      .sort((left, right) => left.displayFret - right.displayFret);
     const lead = getLeadPadding(stringNumber);
     const tail = Math.max(2, maxLead - lead);
-    const fretText = stringNotes.map((note) => note.fret).join("--");
+    const fretText = stringNotes.map((note) => note.displayFret).join("--");
 
     return `${label}|${"-".repeat(lead)}${fretText}--${"-".repeat(tail)}`;
   }).join("\n");
