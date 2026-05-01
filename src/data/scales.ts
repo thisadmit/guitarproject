@@ -236,7 +236,9 @@ export function generateScaleBox(
         openNote,
         fret,
         note,
+        octave: getOctaveFromMidi(midi),
         fullName: `${note}${getOctaveFromMidi(midi)}`,
+        midi,
         degree: patternNote.degree,
         isRoot: patternNote.degree === "1",
       };

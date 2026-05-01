@@ -37,7 +37,9 @@ export interface FretboardNote {
   openNote: string;
   fret: number;
   note: string;
+  octave: number;
   fullName: string;
+  midi: number;
   degree: string;
   isRoot: boolean;
 }

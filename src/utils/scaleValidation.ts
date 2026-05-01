@@ -1,9 +1,18 @@
 export interface ScaleValidationResult {
   isCorrect: boolean;
   isInBox: boolean | null;
+  displayNote: string | null;
   normalizedNote: string | null;
   message: string;
+  status: ScaleExerciseStatus;
 }
+
+export type ScaleExerciseStatus =
+  | "stopped"
+  | "no-signal"
+  | "in-scale"
+  | "outside-box"
+  | "wrong";
 
 const ENHARMONIC_NORMALIZATION: Record<string, string> = {
   DB: "C#",
@@ -47,16 +56,32 @@ export function isNoteInScale(
   noteName: string | null | undefined,
   scaleNotes: readonly string[],
   scaleLabel = "the selected scale",
-  boxNotes?: readonly string[],
+  boxMidiNumbers?: readonly number[],
+  currentMidi?: number | null,
+  isExerciseRunning = true,
 ): ScaleValidationResult {
+  if (!isExerciseRunning) {
+    return {
+      isCorrect: false,
+      isInBox: null,
+      displayNote: null,
+      normalizedNote: null,
+      message: "Start exercise to check your notes",
+      status: "stopped",
+    };
+  }
+
   const normalizedNote = normalizeNoteName(noteName);
+  const displayNote = normalizeFullNoteName(noteName) ?? normalizedNote;
 
   if (!normalizedNote) {
     return {
       isCorrect: false,
       isInBox: null,
+      displayNote: null,
       normalizedNote: null,
       message: "Play a note",
+      status: "no-signal",
     };
   }
 
@@ -64,46 +89,63 @@ export function isNoteInScale(
     .map((scaleNote) => normalizeNoteName(scaleNote))
     .filter((scaleNote): scaleNote is string => scaleNote !== null);
   const isCorrect = normalizedScaleNotes.includes(normalizedNote);
-  const normalizedBoxNotes =
-    boxNotes
-      ?.map((boxNote) => normalizeNoteName(boxNote))
-      .filter((boxNote): boxNote is string => boxNote !== null) ?? null;
-  const isInBox = normalizedBoxNotes
-    ? normalizedBoxNotes.includes(normalizedNote)
+  const isInBox = boxMidiNumbers && currentMidi !== null && currentMidi !== undefined
+    ? boxMidiNumbers.includes(currentMidi)
     : null;
+  const status = getScaleStatus(isCorrect, isInBox);
   const message = getScaleMessage({
+    displayNote: displayNote ?? normalizedNote,
     isCorrect,
     isInBox,
-    normalizedNote,
     scaleLabel,
+    status,
   });
 
   return {
     isCorrect,
     isInBox,
+    displayNote,
     normalizedNote,
     message,
+    status,
   };
 }
 
-function getScaleMessage({
-  isCorrect,
-  isInBox,
-  normalizedNote,
-  scaleLabel,
-}: {
-  isCorrect: boolean;
-  isInBox: boolean | null;
-  normalizedNote: string;
-  scaleLabel: string;
-}): string {
+function getScaleStatus(
+  isCorrect: boolean,
+  isInBox: boolean | null,
+): ScaleExerciseStatus {
   if (!isCorrect) {
-    return `Outside scale - ${normalizedNote} is not in ${scaleLabel}`;
+    return "wrong";
   }
 
   if (isInBox === false) {
-    return `In scale, but outside selected box`;
+    return "outside-box";
   }
 
-  return `Good - ${normalizedNote} is in this box`;
+  return "in-scale";
+}
+
+function getScaleMessage({
+  displayNote,
+  isCorrect,
+  isInBox,
+  scaleLabel,
+  status,
+}: {
+  displayNote: string;
+  isCorrect: boolean;
+  isInBox: boolean | null;
+  scaleLabel: string;
+  status: ScaleExerciseStatus;
+}): string {
+  if (status === "wrong") {
+    return `${displayNote} is outside ${scaleLabel}`;
+  }
+
+  if (status === "outside-box") {
+    return `${displayNote} is in the scale, but not in the selected box`;
+  }
+
+  return `Good - ${displayNote} is in this box`;
 }

@@ -1,15 +1,15 @@
 import type { FretboardNote, Scale, ScaleBox } from "../../types/scale";
+import type { NoteInfo } from "../../utils/noteUtils";
 
 interface FretboardPreviewProps {
-  currentInputNote: string | null;
-  currentPitchClass: string | null;
+  currentInput: NoteInfo | null;
   fretboardNotes: readonly FretboardNote[];
+  isExerciseRunning: boolean;
   scaleNotes: readonly string[];
   selectedBox: ScaleBox | null;
   selectedKey: string;
   selectedPosition: string;
   selectedScale: Scale;
-  targetNote: string | null;
 }
 
 const STRING_ORDER = [1, 2, 3, 4, 5, 6] as const;
@@ -23,15 +23,14 @@ const STRING_LABELS: Record<(typeof STRING_ORDER)[number], string> = {
 };
 
 export function FretboardPreview({
-  currentInputNote,
-  currentPitchClass,
+  currentInput,
   fretboardNotes,
+  isExerciseRunning,
   scaleNotes,
   selectedBox,
   selectedKey,
   selectedPosition,
   selectedScale,
-  targetNote,
 }: FretboardPreviewProps) {
   const frets = fretboardNotes.map((note) => note.fret);
   const minFret = frets.length > 0 ? Math.min(...frets) : 0;
@@ -95,28 +94,12 @@ export function FretboardPreview({
                   <div className="box-fret-cell" key={`${stringNumber}-${fret}`}>
                     <span className="box-string-line" />
                     {note ? (
-                      <span
-                        className={[
-                          "note-dot",
-                          note.isRoot ? "root" : "",
-                          note.note === targetNote ? "target-note" : "",
-                          note.fullName === currentInputNote ? "current-note" : "",
-                          note.fullName === currentInputNote && note.note === targetNote
-                            ? "success-note"
-                            : "",
-                          currentInputNote &&
-                          note.fullName === currentInputNote &&
-                          targetNote &&
-                          note.note !== targetNote
-                            ? "warning-note"
-                            : "",
-                        ].join(" ")}
-                      >
-                        {note.note}
-                        {note.fullName === currentInputNote ? (
-                          <small>NOW</small>
-                        ) : null}
-                      </span>
+                      <FretboardDot
+                        currentInput={currentInput}
+                        isCurrentInScale={isCurrentInputInScale(currentInput, scaleNotes)}
+                        isExerciseRunning={isExerciseRunning}
+                        note={note}
+                      />
                     ) : null}
                   </div>
                 );
@@ -125,13 +108,20 @@ export function FretboardPreview({
           ))}
 
           <div className="root-legend">
-            <span className="note-dot root">{selectedKey}</span>
+            <span className="fret-note fret-note--root">{selectedKey}</span>
             <p>Root note. Start and resolve phrases here.</p>
           </div>
-          {currentPitchClass &&
-          !fretboardNotes.some((note) => note.note === currentPitchClass) ? (
-            <p className="outside-box-message">
-              {currentPitchClass} is in your input, but outside the selected box.
+          {isExerciseRunning &&
+          currentInput &&
+          !fretboardNotes.some((note) => note.midi === currentInput.midi) ? (
+            <p
+              className={`outside-box-message ${
+                isCurrentInputInScale(currentInput, scaleNotes) ? "" : "wrong"
+              }`}
+            >
+              {isCurrentInputInScale(currentInput, scaleNotes)
+                ? `${currentInput.fullName} is in the scale, but outside this box.`
+                : `${currentInput.fullName} is outside the selected scale.`}
             </p>
           ) : null}
         </div>
@@ -146,4 +136,71 @@ export function FretboardPreview({
       )}
     </section>
   );
+}
+
+function FretboardDot({
+  currentInput,
+  isCurrentInScale,
+  isExerciseRunning,
+  note,
+}: {
+  currentInput: NoteInfo | null;
+  isCurrentInScale: boolean;
+  isExerciseRunning: boolean;
+  note: FretboardNote;
+}) {
+  const isCurrent = currentInput !== null && note.midi === currentInput.midi;
+  const isWrong = isExerciseRunning && isCurrent && !isCurrentInScale;
+  const visualState = getFretNoteVisualState({
+    isCurrent,
+    isRoot: note.isRoot,
+    isWrong,
+  });
+
+  return (
+    <span
+      className={`fret-note fret-note--${visualState}`}
+      title={`${note.fullName} - string ${note.stringNumber}, fret ${note.fret}`}
+    >
+      {note.note}
+      {isCurrent ? <small>NOW</small> : null}
+    </span>
+  );
+}
+
+type FretNoteVisualState = "wrong" | "current" | "root" | "normal";
+
+function getFretNoteVisualState({
+  isCurrent,
+  isRoot,
+  isWrong,
+}: {
+  isCurrent: boolean;
+  isRoot: boolean;
+  isWrong: boolean;
+}): FretNoteVisualState {
+  if (isWrong) {
+    return "wrong";
+  }
+
+  if (isCurrent) {
+    return "current";
+  }
+
+  if (isRoot) {
+    return "root";
+  }
+
+  return "normal";
+}
+
+function isCurrentInputInScale(
+  currentInput: NoteInfo | null,
+  scaleNotes: readonly string[],
+): boolean {
+  if (!currentInput) {
+    return false;
+  }
+
+  return scaleNotes.includes(currentInput.note);
 }

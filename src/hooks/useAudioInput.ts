@@ -53,6 +53,10 @@ export function useAudioInput(): AudioInputState {
       const AudioContextConstructor =
         window.AudioContext ?? window.webkitAudioContext;
       const audioContext = new AudioContextConstructor();
+      if (audioContext.state === "suspended") {
+        await audioContext.resume();
+      }
+
       const sourceNode = audioContext.createMediaStreamSource(stream);
       const analyser = audioContext.createAnalyser();
 

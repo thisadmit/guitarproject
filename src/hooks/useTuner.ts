@@ -20,6 +20,7 @@ const INITIAL_READING: StabilizedTunerReading = {
   cents: null,
   smoothedCents: null,
   clarity: null,
+  inputRms: 0,
   rms: 0,
   targetFrequency: null,
   direction: "no-signal",
@@ -83,6 +84,24 @@ export function useTuner(
 
       if (stabilizedReading) {
         publish(stabilizedReading, timestamp);
+      } else if (rms >= DEFAULT_STABILIZER_CONFIG.rmsThreshold) {
+        // Surface raw input activity while the stabilizer is still waiting for
+        // a reliable note. Learn uses this to show that the mic is listening.
+        publish(
+          {
+            ...readingRef.current,
+            hasSignal: false,
+            frequency: null,
+            note: null,
+            cents: null,
+            clarity: detectedPitch?.clarity ?? null,
+            inputRms: rms,
+            rms: 0,
+            targetFrequency: null,
+            direction: "no-signal",
+          },
+          timestamp,
+        );
       } else if (
         stabilizerStateRef.current.lastSignalAt === null ||
         timestamp - stabilizerStateRef.current.lastSignalAt >

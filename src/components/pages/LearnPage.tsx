@@ -14,10 +14,6 @@ import { ScaleLibrary } from "../learn/ScaleLibrary";
 import { TabPreview } from "../learn/TabPreview";
 import { useAudioInput } from "../../hooks/useAudioInput";
 import { useTuner } from "../../hooks/useTuner";
-import {
-  normalizeFullNoteName,
-  normalizeNoteName,
-} from "../../utils/scaleValidation";
 
 export function LearnPage() {
   const [selectedScale, setSelectedScale] = useState(
@@ -33,15 +29,9 @@ export function LearnPage() {
   const { analyserNode, error, isRunning, sampleRate, start, stop } =
     useAudioInput();
   const tunerReading = useTuner(analyserNode, sampleRate, isRunning);
-  const currentNoteName = tunerReading.hasSignal
-    ? tunerReading.note?.fullName ?? null
-    : null;
-  const currentInputNote = normalizeFullNoteName(currentNoteName);
-  const currentPitchClass = normalizeNoteName(currentNoteName);
+  const currentInput = tunerReading.hasSignal ? tunerReading.note : null;
+  const currentNoteName = currentInput?.fullName ?? null;
   const scaleLabel = `${selectedKey} ${selectedScale.name}`;
-  const [exerciseTargetNote, setExerciseTargetNote] = useState<string | null>(
-    scaleNotes[0] ?? null,
-  );
 
   const handleToggleListening = (): void => {
     if (isRunning) {
@@ -92,25 +82,26 @@ export function LearnPage() {
 
       <div className="learn-main-area">
         <FretboardPreview
-          currentInputNote={currentInputNote}
-          currentPitchClass={currentPitchClass}
+          currentInput={currentInput}
           fretboardNotes={fretboardNotes}
+          isExerciseRunning={isRunning}
           scaleNotes={scaleNotes}
           selectedBox={selectedBox}
           selectedKey={selectedKey}
           selectedPosition={selectedPosition}
           selectedScale={selectedScale}
-          targetNote={exerciseTargetNote}
         />
         <GuidedExercisePanel
           key={`${selectedScale.id}-${selectedKey}-${selectedPosition}`}
-          boxNotes={fretboardNotes.map((note) => note.note)}
+          boxMidiNumbers={fretboardNotes.map((note) => note.midi)}
+          currentInput={currentInput}
           currentNoteName={currentNoteName}
           error={error}
+          hasSignal={tunerReading.hasSignal}
           isListening={isRunning}
           onStartListening={handleStartListening}
-          onTargetNoteChange={setExerciseTargetNote}
           onToggleListening={handleToggleListening}
+          rms={tunerReading.inputRms}
           scaleLabel={scaleLabel}
           scaleNotes={scaleNotes}
           selectedScale={selectedScale}

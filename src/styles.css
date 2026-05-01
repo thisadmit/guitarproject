@@ -786,7 +786,7 @@ p {
   background: rgba(255, 255, 255, 0.18);
 }
 
-.note-dot {
+.fret-note {
   position: relative;
   z-index: 1;
   display: grid;
@@ -802,34 +802,37 @@ p {
   box-shadow: 0 0 14px rgba(103, 223, 154, 0.22);
 }
 
-.note-dot.root {
+.fret-note--normal {
+  color: #07110c;
+  background: #67df9a;
+  border-color: rgba(103, 223, 154, 0.68);
+}
+
+.fret-note--root {
   border-color: rgba(240, 168, 59, 0.96);
   color: #1d1203;
   background: #f0a83b;
   box-shadow: 0 0 22px rgba(240, 168, 59, 0.6);
 }
 
-.note-dot.target-note {
+.fret-note--target {
+  color: #07110c;
+  background: #9af0bc;
+  border-color: rgba(154, 240, 188, 0.96);
   outline: 3px solid rgba(255, 255, 255, 0.72);
   box-shadow:
     0 0 0 5px rgba(255, 255, 255, 0.08),
     0 0 22px rgba(103, 223, 154, 0.46);
 }
 
-.note-dot.current-note {
+.fret-note--current {
   color: #06121a;
   background: #63c8ff;
   border-color: rgba(99, 200, 255, 0.96);
   animation: notePulse 900ms ease-out infinite;
 }
 
-.note-dot.success-note {
-  color: #07110c;
-  background: #9af0bc;
-  border-color: rgba(154, 240, 188, 0.96);
-}
-
-.note-dot.warning-note {
+.fret-note--wrong {
   color: #fff7f7;
   background: #e5484d;
   border-color: rgba(255, 119, 119, 0.98);
@@ -838,12 +841,12 @@ p {
     0 0 24px rgba(229, 72, 77, 0.68);
 }
 
-.note-dot.warning-note small {
+.fret-note--wrong small {
   color: #fff7f7;
   background: #e5484d;
 }
 
-.note-dot small {
+.fret-note small {
   position: absolute;
   top: -18px;
   left: 50%;
@@ -882,7 +885,7 @@ p {
   margin-top: 10px;
 }
 
-.root-legend .note-dot {
+.root-legend .fret-note {
   flex: 0 0 auto;
 }
 
@@ -977,7 +980,8 @@ p {
 }
 
 .live-note-readout,
-.exercise-target {
+.exercise-target,
+.input-monitor {
   margin-top: 14px;
   padding: 16px;
   border-radius: 8px;
@@ -985,7 +989,8 @@ p {
 }
 
 .live-note-readout span,
-.exercise-target span {
+.exercise-target span,
+.input-monitor span {
   display: block;
   color: #8f9bad;
   font-size: 0.82rem;
@@ -1001,6 +1006,22 @@ p {
   color: #f8fbff;
   font-size: clamp(3rem, 8vw, 5.5rem);
   line-height: 0.9;
+}
+
+.input-monitor strong,
+.input-monitor small {
+  display: block;
+  margin-top: 6px;
+}
+
+.input-monitor strong {
+  color: #dce3ec;
+  font-size: 1.1rem;
+}
+
+.input-monitor small {
+  color: #8f9bad;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
 
 .live-scale-feedback.correct .live-note-readout strong {

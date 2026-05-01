@@ -36,6 +36,7 @@ export interface StabilizedTunerReading {
   cents: number | null;
   smoothedCents: number | null;
   clarity: number | null;
+  inputRms: number;
   rms: number;
   targetFrequency: number | null;
   direction: TuningDirection;
@@ -98,6 +99,7 @@ export function createNoSignalReading(
     cents: null,
     smoothedCents: state.smoothedCents,
     clarity: null,
+    inputRms: 0,
     rms: 0,
     targetFrequency: state.stableNote?.targetFrequency ?? null,
     direction: "no-signal",
@@ -182,6 +184,7 @@ export function stabilizePitchSample(
     cents: rawNote.cents,
     smoothedCents: state.smoothedCents,
     clarity: sample.clarity,
+    inputRms: sample.rms,
     rms: sample.rms,
     targetFrequency: state.stableNote.targetFrequency,
     direction: getTuningDirection(state.smoothedCents, true),

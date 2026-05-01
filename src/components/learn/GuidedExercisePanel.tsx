@@ -1,163 +1,69 @@
-import { useEffect, useRef, useState } from "react";
 import type { Scale } from "../../types/scale";
-import { isNoteInScale, normalizeNoteName } from "../../utils/scaleValidation";
+import type { NoteInfo } from "../../utils/noteUtils";
+import { isNoteInScale } from "../../utils/scaleValidation";
 
-interface GuidedExercisePanelProps {
-  boxNotes: readonly string[];
+interface ScaleExercisePanelProps {
+  boxMidiNumbers: readonly number[];
+  currentInput: NoteInfo | null;
   currentNoteName: string | null;
   error: string | null;
+  hasSignal: boolean;
   isListening: boolean;
   onStartListening: () => void;
-  onTargetNoteChange: (note: string | null) => void;
   onToggleListening: () => void;
+  rms: number;
   scaleNotes: readonly string[];
   scaleLabel: string;
   selectedScale: Scale;
 }
 
-type ExerciseStatus = "idle" | "running" | "wrong" | "complete";
-
 export function GuidedExercisePanel({
-  boxNotes,
+  boxMidiNumbers,
+  currentInput,
   currentNoteName,
   error,
+  hasSignal,
   isListening,
   onStartListening,
-  onTargetNoteChange,
   onToggleListening,
+  rms,
   scaleNotes,
   scaleLabel,
   selectedScale,
-}: GuidedExercisePanelProps) {
-  const [status, setStatus] = useState<ExerciseStatus>("idle");
-  const [targetIndex, setTargetIndex] = useState<number>(0);
-  const [feedback, setFeedback] = useState<string>(
-    "Start the exercise and play the notes in order.",
-  );
-  const lastHandledRef = useRef<string | null>(null);
-  const previousNoteRef = useRef<string | null>(null);
-  const wasSilentRef = useRef<boolean>(true);
-  const lastAcceptedAtRef = useRef<number>(0);
-  const targetNote = scaleNotes[targetIndex] ?? null;
-  const normalizedCurrentNote = normalizeNoteName(currentNoteName);
+}: ScaleExercisePanelProps) {
   const scaleResult = isNoteInScale(
     currentNoteName,
     scaleNotes,
     scaleLabel,
-    boxNotes,
+    boxMidiNumbers,
+    currentInput?.midi ?? null,
+    isListening,
   );
-  const liveStatus = !isListening || !scaleResult.normalizedNote
-    ? "idle"
-    : scaleResult.isCorrect && scaleResult.isInBox !== false
+  const liveStatus =
+    scaleResult.status === "in-scale"
       ? "correct"
-      : "outside";
-
-  useEffect(() => {
-    onTargetNoteChange(status === "complete" ? null : targetNote);
-  }, [onTargetNoteChange, status, targetNote]);
-
-  useEffect(() => {
-    if (!normalizedCurrentNote) {
-      wasSilentRef.current = true;
-      previousNoteRef.current = null;
-      return;
-    }
-
-    if (status !== "running" || !targetNote) {
-      previousNoteRef.current = normalizedCurrentNote;
-      return;
-    }
-
-    const isNewNoteInput =
-      wasSilentRef.current && previousNoteRef.current !== normalizedCurrentNote;
-
-    if (!isNewNoteInput) {
-      previousNoteRef.current = normalizedCurrentNote;
-      return;
-    }
-
-    const now = performance.now();
-    const eventKey = `${targetIndex}:${normalizedCurrentNote}:${Math.round(now)}`;
-    if (
-      lastHandledRef.current === eventKey ||
-      now - lastAcceptedAtRef.current < 120
-    ) {
-      previousNoteRef.current = normalizedCurrentNote;
-      return;
-    }
-
-    lastHandledRef.current = eventKey;
-    lastAcceptedAtRef.current = now;
-    wasSilentRef.current = false;
-    previousNoteRef.current = normalizedCurrentNote;
-
-    if (normalizedCurrentNote === targetNote) {
-      const nextIndex = targetIndex + 1;
-
-      if (nextIndex >= scaleNotes.length) {
-        setStatus("complete");
-        setFeedback("Exercise complete");
-      } else {
-        setTargetIndex(nextIndex);
-        setFeedback(`Good, now play ${scaleNotes[nextIndex]}`);
-        wasSilentRef.current = false;
-      }
-    } else {
-      setStatus("wrong");
-      setFeedback(`Outside target - try ${targetNote} next`);
-    }
-  }, [normalizedCurrentNote, scaleNotes, status, targetIndex, targetNote]);
-
-  const startExercise = (): void => {
-    onStartListening();
-    setStatus("running");
-    setTargetIndex(0);
-    lastHandledRef.current = null;
-    previousNoteRef.current = normalizedCurrentNote;
-    wasSilentRef.current = normalizedCurrentNote === null;
-    lastAcceptedAtRef.current = 0;
-    setFeedback(`Play ${scaleNotes[0]}`);
-  };
-
-  const resetExercise = (): void => {
-    setStatus("idle");
-    setTargetIndex(0);
-    lastHandledRef.current = null;
-    previousNoteRef.current = null;
-    wasSilentRef.current = true;
-    lastAcceptedAtRef.current = 0;
-    setFeedback("Start the exercise and play the notes in order.");
-  };
-
-  const resumeAfterWrong = (): void => {
-    setStatus("running");
-    lastHandledRef.current = null;
-    previousNoteRef.current = normalizedCurrentNote;
-    wasSilentRef.current = normalizedCurrentNote === null;
-    setFeedback(`Try ${targetNote} next`);
-  };
+      : scaleResult.status === "wrong"
+        ? "outside"
+        : scaleResult.status;
 
   return (
-    <section className={`solo-card guided-exercise combined-exercise ${status} ${liveStatus}`}>
+    <section className={`solo-card guided-exercise combined-exercise ${liveStatus}`}>
       <div className="section-heading">
-        <h2>Guided Exercise</h2>
-        <span>{isListening ? "Listening" : "Start to listen"}</span>
+        <h2>Scale Exercise</h2>
+        <span>{isListening ? "Running" : "Stopped"}</span>
       </div>
 
       <div className="exercise-feedback-layout">
         <div className="exercise-left">
           <p>
-            {selectedScale.name}: play the scale upward, one note at a time.
-            Octave does not matter.
+            {selectedScale.name}: play freely inside the selected scale. This
+            exercise checks scale fit, not note order.
           </p>
 
           <div className="exercise-sequence">
-            {scaleNotes.map((note, index) => (
+            {scaleNotes.map((note) => (
               <span
-                className={[
-                  index < targetIndex || status === "complete" ? "done" : "",
-                  index === targetIndex && status !== "complete" ? "target" : "",
-                ].join(" ")}
+                className={note === scaleResult.normalizedNote ? "target" : ""}
                 key={note}
               >
                 {note}
@@ -166,23 +72,27 @@ export function GuidedExercisePanel({
           </div>
 
           <div className="exercise-target">
-            <span>Current target</span>
-            <strong>{status === "complete" ? "--" : targetNote ?? "--"}</strong>
+            <span>Scale status</span>
+            <strong>{getStatusLabel(scaleResult.status)}</strong>
           </div>
 
-          <p className="feedback-message">{feedback}</p>
+          <p className="feedback-message">{scaleResult.message}</p>
 
           <div className="exercise-actions">
-            <button className="record-button" type="button" onClick={startExercise}>
+            <button
+              className="record-button"
+              type="button"
+              onClick={onStartListening}
+              disabled={isListening}
+            >
               Start Exercise
             </button>
-            {status === "wrong" ? (
-              <button className="secondary-button" type="button" onClick={resumeAfterWrong}>
-                Try Again
-              </button>
-            ) : null}
-            <button className="secondary-button" type="button" onClick={resetExercise}>
-              Reset
+            <button
+              className="secondary-button"
+              type="button"
+              onClick={onToggleListening}
+            >
+              {isListening ? "Stop Exercise" : "Start Listening"}
             </button>
           </div>
         </div>
@@ -193,20 +103,26 @@ export function GuidedExercisePanel({
             <span>{isListening ? "Live" : "Off"}</span>
           </div>
 
-          <button className="secondary-button" type="button" onClick={onToggleListening}>
-            {isListening ? "Stop Listening" : "Start Listening"}
-          </button>
-
           {error ? <p className="inline-error">{error}</p> : null}
 
           <div className="live-note-readout">
             <span>Current note</span>
-            <strong>{scaleResult.normalizedNote ?? "--"}</strong>
+            <strong>{scaleResult.displayNote ?? "--"}</strong>
           </div>
 
-          <p className="feedback-message">
-            {isListening ? scaleResult.message : "Start the exercise or listening mode"}
-          </p>
+          <div className="input-monitor">
+            <span>Input</span>
+            <strong>
+              {isListening
+                ? hasSignal
+                  ? "Signal"
+                  : "Listening, no pitch"
+                : "Off"}
+            </strong>
+            <small>RMS {rms > 0 ? rms.toFixed(3) : "--"}</small>
+          </div>
+
+          <p className="feedback-message">{scaleResult.message}</p>
 
           <div className="allowed-note-row">
             {scaleNotes.map((note) => (
@@ -222,4 +138,19 @@ export function GuidedExercisePanel({
       </div>
     </section>
   );
+}
+
+function getStatusLabel(status: string): string {
+  switch (status) {
+    case "in-scale":
+      return "OK";
+    case "outside-box":
+      return "Outside Box";
+    case "wrong":
+      return "Wrong";
+    case "no-signal":
+      return "Play a note";
+    default:
+      return "Stopped";
+  }
 }
