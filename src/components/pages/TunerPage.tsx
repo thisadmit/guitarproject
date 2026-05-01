@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { PedalTuner } from "../tuner/PedalTuner";
 import { StatusPanel } from "../tuner/StatusPanel";
 import { Waveform } from "../tuner/Waveform";
@@ -10,9 +11,11 @@ const TUNER_DEBUG_CONFIG: Partial<StabilizerConfig> = {
   minClarity: 0.45,
   noteStableFrames: 2,
   rmsThreshold: 0.005,
+  signalReleaseMs: 3000,
 };
 
 export function TunerPage() {
+  const hasRequestedAutoStartRef = useRef<boolean>(false);
   const { analyserNode, error, isRunning, sampleRate, start, stop } =
     useAudioInput();
   const reading = useTuner(
@@ -21,6 +24,14 @@ export function TunerPage() {
     isRunning,
     TUNER_DEBUG_CONFIG,
   );
+  const inputLevel = Math.min(1, reading.inputRms / 0.08);
+
+  useEffect(() => {
+    if (!hasRequestedAutoStartRef.current) {
+      hasRequestedAutoStartRef.current = true;
+      void start();
+    }
+  }, [start]);
 
   const handleToggle = (): void => {
     if (isRunning) {
@@ -35,11 +46,17 @@ export function TunerPage() {
       <div className="tool-bar">
         <div>
           <h2>Tuner</h2>
-          <p>Use this focused tool before learning or practice sessions.</p>
+          <p>Auto-listening tuner for quick checks before practice sessions.</p>
         </div>
-        <button className="primary-button" type="button" onClick={handleToggle}>
-          {isRunning ? "Stop" : "Start"}
-        </button>
+        {error ? (
+          <button className="primary-button" type="button" onClick={() => void start()}>
+            Retry Audio
+          </button>
+        ) : (
+          <span className={`audio-status-pill ${isRunning ? "active" : ""}`}>
+            {isRunning ? "Listening" : "Starting..."}
+          </span>
+        )}
       </div>
 
       {error ? <p className="error-message">{error}</p> : null}
@@ -51,6 +68,15 @@ export function TunerPage() {
             <span>{reading.hasSignal ? "Signal" : "Idle"}</span>
           </div>
           <Waveform analyserNode={analyserNode} isRunning={isRunning} compact />
+          <div className="input-level-panel">
+            <div className="input-level-header">
+              <span>Input Level</span>
+              <strong>{reading.inputRms > 0 ? reading.inputRms.toFixed(4) : "--"}</strong>
+            </div>
+            <div className="input-level-meter" aria-label="Audio input level">
+              <span style={{ width: `${inputLevel * 100}%` }} />
+            </div>
+          </div>
         </aside>
 
         <PedalTuner

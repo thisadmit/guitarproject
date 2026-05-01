@@ -8,25 +8,13 @@ import {
 } from "../../data/scales";
 import { FretboardPreview } from "../learn/FretboardPreview";
 import { KeySelector } from "../learn/KeySelector";
-import { MetronomePanel } from "../learn/MetronomePanel";
 import { PositionSelector } from "../learn/PositionSelector";
 import { PositionVariantSelector } from "../learn/PositionVariantSelector";
 import { ScaleLibrary } from "../learn/ScaleLibrary";
-import { ScaleExercisePanel } from "../learn/ScaleExercisePanel";
 import { TabPreview } from "../learn/TabPreview";
-import { useAudioInput } from "../../hooks/useAudioInput";
-import { useTuner } from "../../hooks/useTuner";
 import type { PositionVariant } from "../../types/scale";
-import type { StabilizerConfig } from "../../utils/tunerStabilizer";
 
-const PRACTICE_TUNER_CONFIG: Partial<StabilizerConfig> = {
-  attackIgnoreMs: 40,
-  minClarity: 0.55,
-  noteStableFrames: 2,
-  signalReleaseMs: 250,
-};
-
-export function PracticePage() {
+export function LearningPage() {
   const [selectedScale, setSelectedScale] = useState(
     scales.find((scale) => scale.id === "minor-pentatonic") ?? scales[0],
   );
@@ -52,46 +40,19 @@ export function PracticePage() {
         selectedVariant,
       )
     : null;
-  const { analyserNode, error, isRunning, sampleRate, start, stop } =
-    useAudioInput();
-  const tunerReading = useTuner(
-    analyserNode,
-    sampleRate,
-    isRunning,
-    PRACTICE_TUNER_CONFIG,
-  );
-  const currentInput = tunerReading.hasSignal ? tunerReading.note : null;
-  const currentNoteName = tunerReading.hasSignal
-    ? tunerReading.note?.fullName ?? null
-    : null;
-  const scaleLabel = `${selectedKey} ${selectedScale.name}`;
-
-  const handleToggleListening = (): void => {
-    if (isRunning) {
-      stop();
-    } else {
-      void start();
-    }
-  };
-
-  const handleStartListening = (): void => {
-    if (!isRunning) {
-      void start();
-    }
-  };
 
   return (
-    <section className="page-stack" aria-label="Practice">
-      <div className="mode-hero practice-mode-hero">
+    <section className="page-stack" aria-label="Learning">
+      <div className="mode-hero learn-mode-hero">
         <div>
-          <h2>Practice</h2>
-          <strong>Free fretboard practice</strong>
+          <h2>Learning</h2>
+          <strong>Understand scale structure</strong>
           <p>
-            Choose a scale, key, and movable box. Use the fretboard and tab
-            views for open-ended repetition without scoring.
+            Study how intervals, roots, movable boxes, and lower-octave display
+            positions connect across the fretboard.
           </p>
         </div>
-        <div className="mode-focus-badge practice">Practice</div>
+        <div className="mode-focus-badge">Learning</div>
       </div>
 
       <div className="learn-control-bar">
@@ -111,11 +72,37 @@ export function PracticePage() {
         />
       </div>
 
-      <div className="practice-fretboard-grid">
+      <div className="learning-content-grid">
+        <section className="solo-card learning-explainer">
+          <div className="section-heading">
+            <h2>Scale Map</h2>
+            <span>{selectedScale.category}</span>
+          </div>
+          <p>{selectedScale.description}</p>
+          <dl>
+            <div>
+              <dt>Formula</dt>
+              <dd>{selectedScale.formula.join(" ")}</dd>
+            </div>
+            <div>
+              <dt>Notes</dt>
+              <dd>{scaleNotes.join(" ")}</dd>
+            </div>
+            <div>
+              <dt>Use For</dt>
+              <dd>{selectedScale.recommendedFor}</dd>
+            </div>
+            <div>
+              <dt>Mood</dt>
+              <dd>{selectedScale.mood}</dd>
+            </div>
+          </dl>
+        </section>
+
         <FretboardPreview
-          currentInput={currentInput}
+          currentInput={null}
           fretboardNotes={fretboardNotes}
-          isExerciseRunning={isRunning}
+          isExerciseRunning={false}
           scaleNotes={scaleNotes}
           selectedBox={selectedBox}
           selectedKey={selectedKey}
@@ -123,23 +110,7 @@ export function PracticePage() {
           positionVariantMessage={positionVariantResult?.message ?? null}
           selectedScale={selectedScale}
         />
-        <ScaleExercisePanel
-          key={`${selectedScale.id}-${selectedKey}-${selectedPosition}-${selectedVariant}`}
-          boxMidiNumbers={fretboardNotes
-            .filter((note) => note.isInBox)
-            .map((note) => note.midi)}
-          currentInput={currentInput}
-          currentNoteName={currentNoteName}
-          error={error}
-          hasSignal={tunerReading.hasSignal}
-          isListening={isRunning}
-          onStartListening={handleStartListening}
-          onToggleListening={handleToggleListening}
-          rms={tunerReading.inputRms}
-          scaleLabel={scaleLabel}
-          scaleNotes={scaleNotes}
-          selectedScale={selectedScale}
-        />
+
         <TabPreview
           fretboardNotes={fretboardNotes}
           positionVariantMessage={positionVariantResult?.message ?? null}
@@ -147,7 +118,6 @@ export function PracticePage() {
           selectedKey={selectedKey}
           selectedScale={selectedScale}
         />
-        <MetronomePanel />
       </div>
     </section>
   );
