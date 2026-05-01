@@ -3,8 +3,40 @@ export interface Scale {
   name: string;
   category: "major" | "minor" | "pentatonic" | "blues" | "mode";
   formula: readonly string[];
+  intervals: readonly number[];
   description: string;
   difficulty: "beginner" | "intermediate" | "advanced";
   mood: string;
   recommendedFor: string;
+  boxes?: readonly ScaleBox[];
+}
+
+export interface ScaleBox {
+  id: string;
+  name: string;
+  description: string;
+  anchorString: 1 | 2 | 3 | 4 | 5 | 6;
+  anchorDegree: string;
+  anchorRelativeFret: number;
+  difficulty: "beginner" | "intermediate" | "advanced";
+  pattern: readonly ScaleBoxStringPattern[];
+}
+
+export interface ScaleBoxStringPattern {
+  stringNumber: 1 | 2 | 3 | 4 | 5 | 6;
+  notes: readonly ScaleBoxPatternNote[];
+}
+
+export interface ScaleBoxPatternNote {
+  relativeFret: number;
+  degree: string;
+}
+
+export interface FretboardNote {
+  stringNumber: 1 | 2 | 3 | 4 | 5 | 6;
+  openNote: string;
+  fret: number;
+  note: string;
+  degree: string;
+  isRoot: boolean;
 }

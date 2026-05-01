@@ -1,42 +1,118 @@
-import type { Scale } from "../../types/scale";
+import type { FretboardNote, Scale, ScaleBox } from "../../types/scale";
 
 interface FretboardPreviewProps {
+  fretboardNotes: readonly FretboardNote[];
+  scaleNotes: readonly string[];
+  selectedBox: ScaleBox | null;
   selectedKey: string;
   selectedPosition: string;
   selectedScale: Scale;
 }
 
-const STRINGS = ["E", "B", "G", "D", "A", "E"];
+const STRING_ORDER = [1, 2, 3, 4, 5, 6] as const;
+const STRING_LABELS: Record<(typeof STRING_ORDER)[number], string> = {
+  1: "e",
+  2: "B",
+  3: "G",
+  4: "D",
+  5: "A",
+  6: "E",
+};
 
 export function FretboardPreview({
+  fretboardNotes,
+  scaleNotes,
+  selectedBox,
   selectedKey,
   selectedPosition,
   selectedScale,
 }: FretboardPreviewProps) {
+  const frets = fretboardNotes.map((note) => note.fret);
+  const minFret = frets.length > 0 ? Math.min(...frets) : 0;
+  const maxFret = frets.length > 0 ? Math.max(...frets) : 0;
+  const fretRange =
+    selectedBox && minFret > 0
+      ? Array.from({ length: maxFret - minFret + 1 }, (_, index) => minFret + index)
+      : [];
+  const gridTemplateColumns = `72px repeat(${Math.max(
+    fretRange.length,
+    1,
+  )}, minmax(58px, 1fr))`;
+
   return (
     <section className="solo-card fretboard-solo-preview">
       <div className="section-heading">
         <h2>Fretboard View</h2>
-        <span>Root ready</span>
+        <span>{selectedBox ? `${minFret}-${maxFret} frets` : "Placeholder"}</span>
       </div>
-      <p>
-        {selectedKey} {selectedScale.name} · {selectedPosition}
-      </p>
-      <div className="solo-fretboard">
-        {STRINGS.map((stringName, stringIndex) => (
-          <div className="solo-string" key={`${stringName}-${stringIndex}`}>
-            <span>{stringName}</span>
-            <div>
-              {Array.from({ length: 8 }, (_, fretIndex) => (
-                <i
-                  key={fretIndex}
-                  className={fretIndex === 2 && stringIndex % 2 === 0 ? "root" : ""}
-                />
-              ))}
-            </div>
+
+      <div className="scale-output-summary">
+        <strong>
+          {selectedKey} {selectedScale.name}
+        </strong>
+        <p>
+          {selectedPosition} - Notes: {scaleNotes.join(" ")} - Formula:{" "}
+          {selectedScale.formula.join(" ")}
+        </p>
+        <p>
+          {selectedBox?.description ??
+            "Box data for this scale is prepared as a future expansion."}
+        </p>
+      </div>
+
+      {selectedBox ? (
+        <div className="box-fretboard" aria-label="Selected scale box fretboard">
+          <div className="fret-number-row" style={{ gridTemplateColumns }}>
+            <span />
+            {fretRange.map((fret) => (
+              <span key={fret}>{fret}</span>
+            ))}
           </div>
-        ))}
-      </div>
+
+          {STRING_ORDER.map((stringNumber) => (
+            <div
+              className="box-string-row"
+              key={stringNumber}
+              style={{ gridTemplateColumns }}
+            >
+              <span className="box-string-label">
+                {stringNumber} - {STRING_LABELS[stringNumber]}
+              </span>
+              {fretRange.map((fret) => {
+                const note = fretboardNotes.find(
+                  (candidate) =>
+                    candidate.stringNumber === stringNumber &&
+                    candidate.fret === fret,
+                );
+
+                return (
+                  <div className="box-fret-cell" key={`${stringNumber}-${fret}`}>
+                    <span className="box-string-line" />
+                    {note ? (
+                      <span className={`note-dot ${note.isRoot ? "root" : ""}`}>
+                        {note.note}
+                      </span>
+                    ) : null}
+                  </div>
+                );
+              })}
+            </div>
+          ))}
+
+          <div className="root-legend">
+            <span className="note-dot root">{selectedKey}</span>
+            <p>Root note. Start and resolve phrases here.</p>
+          </div>
+        </div>
+      ) : (
+        <div className="box-placeholder">
+          <strong>Box data coming soon</strong>
+          <p>
+            Minor Pentatonic Boxes 1-5 are implemented now. Other scale box
+            systems will plug into the same view.
+          </p>
+        </div>
+      )}
     </section>
   );
 }

@@ -3,7 +3,7 @@ interface KeySelectorProps {
   onSelectKey: (keyName: string) => void;
 }
 
-const KEYS = ["A", "Bb", "B", "C", "C#", "D", "Eb", "E", "F", "F#", "G", "Ab"];
+const KEYS = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
 
 export function KeySelector({ selectedKey, onSelectKey }: KeySelectorProps) {
   return (

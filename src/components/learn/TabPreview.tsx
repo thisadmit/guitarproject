@@ -1,23 +1,70 @@
-import type { Scale } from "../../types/scale";
+import type { FretboardNote, Scale, ScaleBox } from "../../types/scale";
 
 interface TabPreviewProps {
+  fretboardNotes: readonly FretboardNote[];
+  selectedBox: ScaleBox | null;
   selectedKey: string;
   selectedScale: Scale;
 }
 
-export function TabPreview({ selectedKey, selectedScale }: TabPreviewProps) {
+const TAB_STRING_ORDER = [
+  { stringNumber: 1, label: "e" },
+  { stringNumber: 2, label: "B" },
+  { stringNumber: 3, label: "G" },
+  { stringNumber: 4, label: "D" },
+  { stringNumber: 5, label: "A" },
+  { stringNumber: 6, label: "E" },
+] as const;
+
+export function TabPreview({
+  fretboardNotes,
+  selectedBox,
+  selectedKey,
+  selectedScale,
+}: TabPreviewProps) {
+  const tab = selectedBox ? buildAscendingBoxTab(fretboardNotes) : null;
+
   return (
     <section className="solo-card tab-preview">
       <div className="section-heading">
         <h2>Tab View</h2>
-        <span>Coming soon</span>
+        <span>{selectedBox ? selectedBox.name : "Placeholder"}</span>
       </div>
-      <pre aria-label="Scale tab placeholder">{`e|----------------|
-B|-----------${selectedKey}----|
-G|------box-data---|
-D|----------------|
-A|--${selectedScale.formula.join("-")}--|
-E|----------------|`}</pre>
+      <p>
+        {selectedKey} {selectedScale.name} - Formula:{" "}
+        {selectedScale.formula.join(" ")}
+      </p>
+      <pre aria-label="Scale tab preview">
+        {tab ?? "Tab data for this scale box is coming soon."}
+      </pre>
     </section>
   );
+}
+
+function buildAscendingBoxTab(fretboardNotes: readonly FretboardNote[]): string {
+  const maxLead = 20;
+
+  return TAB_STRING_ORDER.map(({ stringNumber, label }) => {
+    const stringNotes = fretboardNotes
+      .filter((note) => note.stringNumber === stringNumber)
+      .sort((left, right) => left.fret - right.fret);
+    const lead = getLeadPadding(stringNumber);
+    const tail = Math.max(2, maxLead - lead);
+    const fretText = stringNotes.map((note) => note.fret).join("--");
+
+    return `${label}|${"-".repeat(lead)}${fretText}--${"-".repeat(tail)}`;
+  }).join("\n");
+}
+
+function getLeadPadding(stringNumber: FretboardNote["stringNumber"]): number {
+  const ascendingOrderFromLowString: Record<FretboardNote["stringNumber"], number> = {
+    6: 0,
+    5: 4,
+    4: 8,
+    3: 12,
+    2: 16,
+    1: 20,
+  };
+
+  return ascendingOrderFromLowString[stringNumber];
 }

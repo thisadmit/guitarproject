@@ -512,6 +512,11 @@ p {
   background: rgba(240, 168, 59, 0.09);
 }
 
+.learn-selection-summary {
+  color: #dce3ec;
+  font-weight: 800;
+}
+
 .solo-learn-grid,
 .solo-practice-grid {
   display: grid;
@@ -541,11 +546,20 @@ p {
 
 .compact-selector,
 .tab-preview,
-.guided-exercise,
+.live-scale-feedback,
+.metronome-panel,
 .recording-panel,
 .current-note-display,
 .recording-summary {
   grid-column: span 2;
+}
+
+.guided-exercise {
+  grid-column: span 4;
+}
+
+.guided-exercise.combined-exercise {
+  grid-column: span 4;
 }
 
 .scale-library-grid {
@@ -661,6 +675,117 @@ p {
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
 
+.scale-output-summary {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+
+.scale-output-summary strong {
+  color: #f8fbff;
+  font-size: clamp(1.8rem, 4vw, 3rem);
+  line-height: 1;
+}
+
+.box-fretboard {
+  display: grid;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 14px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.22);
+}
+
+.fret-number-row,
+.box-string-row {
+  display: grid;
+  grid-template-columns: 72px repeat(var(--box-fret-count, 4), minmax(58px, 1fr));
+  gap: 8px;
+  align-items: center;
+}
+
+.fret-number-row span {
+  color: #8f9bad;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.86rem;
+  text-align: center;
+}
+
+.box-string-label {
+  color: #c9d2df;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.86rem;
+}
+
+.box-fret-cell {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: 52px;
+}
+
+.box-string-line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.note-dot {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border: 1px solid rgba(103, 223, 154, 0.68);
+  border-radius: 50%;
+  color: #07110c;
+  background: #67df9a;
+  font-size: 0.88rem;
+  font-weight: 900;
+  box-shadow: 0 0 14px rgba(103, 223, 154, 0.22);
+}
+
+.note-dot.root {
+  border-color: rgba(240, 168, 59, 0.96);
+  color: #1d1203;
+  background: #f0a83b;
+  box-shadow: 0 0 22px rgba(240, 168, 59, 0.6);
+}
+
+.root-legend {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.root-legend .note-dot {
+  flex: 0 0 auto;
+}
+
+.root-legend p {
+  margin: 0;
+}
+
+.box-placeholder {
+  display: grid;
+  align-content: center;
+  min-height: 220px;
+  padding: 18px;
+  border: 1px dashed rgba(255, 255, 255, 0.18);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.18);
+}
+
+.box-placeholder strong {
+  color: #f4f7fb;
+  font-size: 1.3rem;
+}
+
 .exercise-sequence {
   display: flex;
   flex-wrap: wrap;
@@ -677,6 +802,151 @@ p {
   color: #07110c;
   background: #67df9a;
   font-weight: 900;
+}
+
+.exercise-sequence span.target {
+  outline: 3px solid rgba(255, 255, 255, 0.72);
+  box-shadow: 0 0 22px rgba(103, 223, 154, 0.42);
+}
+
+.exercise-sequence span.done {
+  color: #07110c;
+  background: #9af0bc;
+  opacity: 0.75;
+}
+
+.live-scale-feedback.correct,
+.guided-exercise.combined-exercise.correct {
+  border-color: rgba(103, 223, 154, 0.45);
+}
+
+.live-scale-feedback.outside,
+.guided-exercise.combined-exercise.outside,
+.guided-exercise.wrong {
+  border-color: rgba(240, 168, 59, 0.52);
+}
+
+.exercise-feedback-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 0.82fr);
+  gap: 16px;
+  align-items: stretch;
+}
+
+.exercise-left,
+.exercise-right {
+  min-width: 0;
+}
+
+.exercise-right {
+  padding: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.section-heading.compact {
+  margin-bottom: 12px;
+}
+
+.inline-error {
+  padding: 10px 12px;
+  border: 1px solid rgba(255, 107, 107, 0.44);
+  border-radius: 8px;
+  color: #ffd6d6;
+  background: rgba(255, 107, 107, 0.1);
+}
+
+.live-note-readout,
+.exercise-target {
+  margin-top: 14px;
+  padding: 16px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.22);
+}
+
+.live-note-readout span,
+.exercise-target span {
+  display: block;
+  color: #8f9bad;
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.live-note-readout strong,
+.exercise-target strong {
+  display: block;
+  margin-top: 8px;
+  color: #f8fbff;
+  font-size: clamp(3rem, 8vw, 5.5rem);
+  line-height: 0.9;
+}
+
+.live-scale-feedback.correct .live-note-readout strong {
+  color: #67df9a;
+}
+
+.live-scale-feedback.outside .live-note-readout strong,
+.guided-exercise.wrong .exercise-target strong {
+  color: #f0a83b;
+}
+
+.feedback-message {
+  color: #dce3ec;
+  font-weight: 800;
+}
+
+.allowed-note-row,
+.exercise-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.allowed-note-row span {
+  display: grid;
+  place-items: center;
+  min-width: 42px;
+  min-height: 38px;
+  border: 1px solid rgba(103, 223, 154, 0.32);
+  border-radius: 8px;
+  color: #67df9a;
+  background: rgba(103, 223, 154, 0.08);
+  font-weight: 900;
+}
+
+.allowed-note-row span.active {
+  color: #07110c;
+  background: #67df9a;
+}
+
+.bpm-display {
+  display: grid;
+  grid-template-columns: 52px 1fr 52px;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.bpm-display button {
+  min-height: 48px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 8px;
+  color: #dce3ec;
+  background: rgba(255, 255, 255, 0.05);
+  font-size: 1.4rem;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.bpm-display strong {
+  color: #f8fbff;
+  font-size: clamp(3rem, 8vw, 5rem);
+  line-height: 1;
+  text-align: center;
 }
 
 .current-note-display strong {
@@ -1236,7 +1506,8 @@ p {
   }
 
   .learn-grid,
-  .mode-panel {
+  .mode-panel,
+  .exercise-feedback-layout {
     grid-template-columns: 1fr;
   }
 
@@ -1287,6 +1558,10 @@ p {
     width: 100%;
     min-height: 64px;
     border-radius: 8px;
+  }
+
+  .guided-exercise.combined-exercise {
+    grid-column: span 1;
   }
 
   .pedal {
