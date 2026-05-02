@@ -863,6 +863,10 @@ p {
   align-items: end;
 }
 
+.target-training-controls {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
 .training-controls label {
   display: grid;
   gap: 8px;
@@ -931,6 +935,61 @@ p {
   color: #f3f6fb;
   background: rgba(0, 0, 0, 0.22);
   font-weight: 800;
+}
+
+.target-test-card strong {
+  font-size: clamp(2.2rem, 5vw, 4rem);
+}
+
+.target-problem-details {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin: 16px 0;
+}
+
+.target-problem-details > div {
+  padding: 12px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.target-problem-details dt {
+  color: #8f9bad;
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.target-problem-details dd {
+  margin: 6px 0 0;
+  color: #f4f7fb;
+  font-weight: 900;
+}
+
+.training-reveal-fretboard {
+  display: grid;
+  gap: 12px;
+}
+
+.training-empty-grid-placeholder {
+  display: grid;
+  align-content: center;
+  min-height: 260px;
+  padding: 18px;
+  border: 1px dashed rgba(255, 255, 255, 0.16);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.18);
+}
+
+.training-empty-grid-placeholder strong {
+  color: #f4f7fb;
+  font-size: 1.35rem;
+}
+
+.training-empty-grid-placeholder p {
+  margin-bottom: 0;
 }
 
 .learn-control-bar .solo-card,
