@@ -19,8 +19,6 @@ const TRAINING_TUNER_CONFIG: Partial<StabilizerConfig> = {
   signalReleaseMs: 250,
 };
 
-const CHALLENGE_TOTAL_LIMITS = [30, 60, 120] as const;
-
 export function TrainingPage() {
   const [activeProblem, setActiveProblem] = useState<TrainingProblem>(
     trainingProblems[0],
@@ -121,16 +119,17 @@ export function TrainingPage() {
               </span>
               <div className="time-limit-selector" aria-label="Challenge time value">
                 {challengeTimingMode === "total" ? (
-                  CHALLENGE_TOTAL_LIMITS.map((limitSec) => (
-                    <button
-                      className={totalTimeLimitSec === limitSec ? "selected" : ""}
-                      key={limitSec}
-                      type="button"
-                      onClick={() => setTotalTimeLimitSec(limitSec)}
-                    >
-                      {limitSec}s
-                    </button>
-                  ))
+                  <label className="interval-slider-control">
+                    <input
+                      type="range"
+                      min="5"
+                      max="60"
+                      step="5"
+                      value={totalTimeLimitSec}
+                      onChange={(event) => setTotalTimeLimitSec(Number(event.target.value))}
+                    />
+                    <strong>{totalTimeLimitSec}s</strong>
+                  </label>
                 ) : (
                   <label className="interval-slider-control">
                     <input

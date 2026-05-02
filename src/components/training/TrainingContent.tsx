@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { scales } from "../../data/scales";
 import type { FretboardNote } from "../../types/scale";
 import type {
   TrainingChallengeTimingMode,
@@ -9,8 +10,13 @@ import type {
 import { getAcceptedMidiNumbers } from "../../utils/fretboardNoteUtils";
 import type { NoteInfo } from "../../utils/noteUtils";
 import {
+  SCALE_DRILL_SCALE_IDS,
+  TRAINING_BOX_NAMES,
+  TRAINING_KEYS,
   generateChordToneProblem,
   generateRandomToneProblem,
+  generateRandomScaleDrillProblem,
+  generateScaleDrillProblem,
 } from "../../utils/trainingProblemGenerator";
 import { TrainingRevealFretboard } from "./TrainingRevealFretboard";
 
@@ -32,7 +38,7 @@ interface TargetScore {
 }
 
 interface ChallengeResult {
-  problemType: "random-tone" | "chord-tone";
+  problemType: "random-tone" | "chord-tone" | "scale-drill";
   durationSec: number;
   correctCount: number;
   attempts: number;
@@ -40,6 +46,12 @@ interface ChallengeResult {
   maxStreak: number;
   completedProblems: number;
   createdAt: string;
+}
+
+interface ScaleDrillSelection {
+  boxName: string;
+  key: string;
+  scaleId: string;
 }
 
 const NOTE_NAMES = [
@@ -60,6 +72,32 @@ const NOTE_NAMES = [
 const GUITAR_MIDI_MIN = 40;
 const GUITAR_MIDI_MAX = 88;
 const FIXED_ROOT_PROBLEM_ID = "find-fixed-root";
+const DEFAULT_SCALE_DRILL_SELECTION: ScaleDrillSelection = {
+  boxName: "Box 1",
+  key: "A",
+  scaleId: "minor-pentatonic",
+};
+const SCALE_DRILL_SCALES = SCALE_DRILL_SCALE_IDS.map((scaleId) => {
+  const scale = scales.find((candidate) => candidate.id === scaleId);
+
+  if (!scale) {
+    throw new Error(`Unsupported scale drill scale: ${scaleId}`);
+  }
+
+  return scale;
+});
+const DEGREE_LABELS: Record<string, string> = {
+  "1": "Root",
+  "2": "Major 2nd",
+  b3: "Minor 3rd",
+  "3": "Major 3rd",
+  "4": "Perfect 4th",
+  b5: "Blue Note",
+  "5": "Perfect 5th",
+  "6": "Major 6th",
+  b7: "Minor 7th",
+  "7": "Major 7th",
+};
 export function TrainingContent({
   currentInput,
   challengeTimingMode,
@@ -70,7 +108,7 @@ export function TrainingContent({
   sessionMode,
   totalTimeLimitSec,
 }: TrainingContentProps) {
-  if (problem.type === "target-test") {
+  if (problem.type === "target-test" || problem.type === "scale-drill") {
     return (
       <TargetTrainingContent
         currentInput={currentInput}
@@ -119,21 +157,29 @@ function TargetTrainingContent({
   });
   const [feedback, setFeedback] = useState<string>("Press Start to begin.");
   const [isActive, setIsActive] = useState<boolean>(false);
-  const [revealUsed, setRevealUsed] = useState<boolean>(false);
+  const [isRevealHeld, setIsRevealHeld] = useState<boolean>(false);
   const [timeLeftSec, setTimeLeftSec] = useState<number>(60);
   const [isTimerRunning, setIsTimerRunning] = useState<boolean>(false);
   const [maxStreak, setMaxStreak] = useState<number>(0);
   const [completedProblems, setCompletedProblems] = useState<number>(0);
   const [challengeResult, setChallengeResult] = useState<ChallengeResult | null>(null);
+  const [showClearEffect, setShowClearEffect] = useState<boolean>(false);
+  const [scaleDrillSelection, setScaleDrillSelection] =
+    useState<ScaleDrillSelection>(DEFAULT_SCALE_DRILL_SELECTION);
   const lastProcessedMidiRef = useRef<number | null>(null);
   const wrongTimeoutRef = useRef<number | null>(null);
+  const clearEffectTimeoutRef = useRef<number | null>(null);
   const scoreRef = useRef<TargetScore>(score);
   const maxStreakRef = useRef<number>(0);
   const completedProblemsRef = useRef<number>(0);
   const activeChallengeDurationRef = useRef<number>(60);
 
   const isChordMode = problem.targetMode === "chord";
+  const isScaleDrillMode = problem.type === "scale-drill";
   const isChallengeMode = sessionMode === "challenge";
+  const useManualScaleDrillSelection = isScaleDrillMode && !isChallengeMode;
+  const selectedScale = getScaleDrillScale(scaleDrillSelection.scaleId);
+  const selectedScaleDisplayName = getScaleDrillDisplayName(selectedScale.name);
   const selectedChallengeDurationSec =
     challengeTimingMode === "total" ? totalTimeLimitSec : intervalTimeSec;
   const foundCount = revealedNotes.length;
@@ -150,14 +196,30 @@ function TargetTrainingContent({
     setScore({ attempts: 0, correctCount: 0, streak: 0 });
     setFeedback("Press Start to begin.");
     setIsActive(false);
-    setRevealUsed(false);
+    setIsRevealHeld(false);
     setIsTimerRunning(false);
     setTimeLeftSec(selectedChallengeDurationSec);
     setMaxStreak(0);
     setCompletedProblems(0);
     setChallengeResult(null);
+    setShowClearEffect(false);
     lastProcessedMidiRef.current = null;
   }, [problem.id]);
+
+  useEffect(() => {
+    if (!useManualScaleDrillSelection) {
+      return;
+    }
+
+    setTargetProblem(null);
+    setRevealedNotes([]);
+    setTemporaryWrongInput(null);
+    setIsRevealHeld(false);
+    setIsActive(false);
+    setShowClearEffect(false);
+    setFeedback("Press Start to begin with the selected key, scale, and box.");
+    lastProcessedMidiRef.current = null;
+  }, [scaleDrillSelection, useManualScaleDrillSelection]);
 
   useEffect(() => {
     scoreRef.current = score;
@@ -177,8 +239,9 @@ function TargetTrainingContent({
       setTimeLeftSec(selectedChallengeDurationSec);
       setIsActive(false);
       setTemporaryWrongInput(null);
-      setRevealUsed(false);
+      setIsRevealHeld(false);
       setChallengeResult(null);
+      setShowClearEffect(false);
       setFeedback("Practice mode selected.");
       return;
     }
@@ -187,9 +250,10 @@ function TargetTrainingContent({
     setTimeLeftSec(selectedChallengeDurationSec);
     setRevealedNotes([]);
     setTemporaryWrongInput(null);
-    setRevealUsed(false);
+    setIsRevealHeld(false);
     setIsActive(false);
     setChallengeResult(null);
+    setShowClearEffect(false);
     setFeedback("Press Start to begin challenge.");
   }, [sessionMode]);
 
@@ -287,7 +351,14 @@ function TargetTrainingContent({
 
     const complete = nextRevealedNotes.length >= targetProblem.targetFretboardNotes.length;
     if (complete && isChallengeMode) {
-      const nextProblem = createTargetProblem(problem);
+      const nextProblem = createTargetProblem(
+        problem,
+        getScaleDrillGenerationOptions({
+          problem,
+          scaleDrillSelection,
+          useManualScaleDrillSelection,
+        }),
+      );
       setCompletedProblems((current) => {
         const nextCompleted = current + 1;
         completedProblemsRef.current = nextCompleted;
@@ -296,7 +367,8 @@ function TargetTrainingContent({
       setTargetProblem(nextProblem);
       setRevealedNotes([]);
       setTemporaryWrongInput(null);
-      setRevealUsed(false);
+      setIsRevealHeld(false);
+      showClearCelebration();
       if (challengeTimingMode === "interval") {
         setTimeLeftSec(intervalTimeSec);
       }
@@ -306,9 +378,13 @@ function TargetTrainingContent({
 
     setFeedback(
       complete
-        ? "Complete - you found all target notes in this box."
+        ? getCompleteFeedback(targetProblem)
         : getCorrectFeedback(targetProblem, matchedNote),
     );
+
+    if (complete) {
+      showClearCelebration();
+    }
   }, [
     canJudgeInput,
     currentInput,
@@ -327,21 +403,38 @@ function TargetTrainingContent({
       if (wrongTimeoutRef.current !== null) {
         window.clearTimeout(wrongTimeoutRef.current);
       }
+
+      if (clearEffectTimeoutRef.current !== null) {
+        window.clearTimeout(clearEffectTimeoutRef.current);
+      }
     };
   }, []);
 
   const handleStart = (): void => {
+    if (isChallengeMode && isTimerRunning) {
+      handleStopChallenge();
+      return;
+    }
+
     if (!isListening) {
       onToggleListening();
     }
 
-    const nextProblem = createTargetProblem(problem);
+    const nextProblem = createTargetProblem(
+      problem,
+      getScaleDrillGenerationOptions({
+        problem,
+        scaleDrillSelection,
+        useManualScaleDrillSelection,
+      }),
+    );
     setTargetProblem(nextProblem);
     setRevealedNotes([]);
     setTemporaryWrongInput(null);
-    setRevealUsed(false);
+    setIsRevealHeld(false);
     setIsActive(true);
     setChallengeResult(null);
+    setShowClearEffect(false);
     lastProcessedMidiRef.current = null;
 
     if (sessionMode === "challenge") {
@@ -363,30 +456,63 @@ function TargetTrainingContent({
     setFeedback(getStartFeedback(nextProblem));
   };
 
+  const handleStopChallenge = (): void => {
+    const elapsedSec =
+      challengeTimingMode === "total"
+        ? Math.max(0, activeChallengeDurationRef.current - timeLeftSec)
+        : Math.max(0, intervalTimeSec - timeLeftSec);
+
+    setIsTimerRunning(false);
+    setIsActive(false);
+    setTemporaryWrongInput(null);
+    setIsRevealHeld(false);
+    setFeedback("Challenge stopped.");
+    setChallengeResult(
+      createChallengeResult({
+        problem,
+        durationSec: elapsedSec,
+        score: scoreRef.current,
+        maxStreak: maxStreakRef.current,
+        completedProblems: completedProblemsRef.current,
+      }),
+    );
+  };
+
   const handleNextProblem = (): void => {
     if (sessionMode === "challenge" && isTimerRunning) {
       return;
     }
 
-    const nextProblem = createTargetProblem(problem);
+    const nextProblem = createTargetProblem(
+      problem,
+      getScaleDrillGenerationOptions({
+        problem,
+        scaleDrillSelection,
+        useManualScaleDrillSelection,
+      }),
+    );
     setTargetProblem(nextProblem);
     setRevealedNotes([]);
     setTemporaryWrongInput(null);
-    setRevealUsed(false);
+    setIsRevealHeld(false);
     setIsActive(true);
+    setShowClearEffect(false);
     setFeedback(getStartFeedback(nextProblem));
     lastProcessedMidiRef.current = null;
   };
 
-  const handleRevealAnswer = (): void => {
+  const handleRevealAnswerStart = (): void => {
     if (!targetProblem || sessionMode === "challenge") {
       return;
     }
 
-    setRevealedNotes([...targetProblem.targetFretboardNotes]);
     setTemporaryWrongInput(null);
-    setRevealUsed(true);
-    setFeedback("Answer revealed. Use Next Problem for a fresh test.");
+    setIsRevealHeld(true);
+    setFeedback("Answer visible while holding Reveal Answer.");
+  };
+
+  const handleRevealAnswerEnd = (): void => {
+    setIsRevealHeld(false);
   };
 
   const handleResetScore = (): void => {
@@ -399,6 +525,17 @@ function TargetTrainingContent({
     completedProblemsRef.current = 0;
     setChallengeResult(null);
     setFeedback("Score reset.");
+  };
+
+  const showClearCelebration = (): void => {
+    if (clearEffectTimeoutRef.current !== null) {
+      window.clearTimeout(clearEffectTimeoutRef.current);
+    }
+
+    setShowClearEffect(true);
+    clearEffectTimeoutRef.current = window.setTimeout(() => {
+      setShowClearEffect(false);
+    }, 1500);
   };
 
   const registerWrongInput = (input: NoteInfo): void => {
@@ -434,8 +571,91 @@ function TargetTrainingContent({
     >
       <div className="section-heading">
         <h2>{problem.title}</h2>
-        <span>{isChordMode ? "Chord" : "Degree"}</span>
+        <span>{isScaleDrillMode ? "Scale Drill" : isChordMode ? "Chord" : "Degree"}</span>
       </div>
+
+      {useManualScaleDrillSelection ? (
+        <div className="scale-drill-selection-panel" aria-label="Scale drill selection">
+          <div className="scale-drill-current-selection">
+            <span>Selected Drill</span>
+            <strong>
+              {scaleDrillSelection.key} {selectedScaleDisplayName}
+            </strong>
+            <em>{scaleDrillSelection.boxName}</em>
+          </div>
+          <div className="scale-drill-dropdown-grid">
+            <details className="scale-drill-picker-group">
+              <summary>
+                <span>Key</span>
+                <strong>{scaleDrillSelection.key}</strong>
+              </summary>
+              <div className="scale-drill-option-list compact">
+                {TRAINING_KEYS.map((keyName) => (
+                  <button
+                    className={scaleDrillSelection.key === keyName ? "selected" : ""}
+                    key={keyName}
+                    type="button"
+                    onClick={() =>
+                      setScaleDrillSelection((current) => ({
+                        ...current,
+                        key: keyName,
+                      }))
+                    }
+                  >
+                    {keyName}
+                  </button>
+                ))}
+              </div>
+            </details>
+            <details className="scale-drill-picker-group">
+              <summary>
+                <span>Scale</span>
+                <strong>{selectedScaleDisplayName}</strong>
+              </summary>
+              <div className="scale-drill-option-list scale-list">
+                {SCALE_DRILL_SCALES.map((scale) => (
+                  <button
+                    className={scaleDrillSelection.scaleId === scale.id ? "selected" : ""}
+                    key={scale.id}
+                    type="button"
+                    onClick={() =>
+                      setScaleDrillSelection((current) => ({
+                        ...current,
+                        scaleId: scale.id,
+                      }))
+                    }
+                  >
+                    {getScaleDrillDisplayName(scale.name)}
+                  </button>
+                ))}
+              </div>
+            </details>
+            <details className="scale-drill-picker-group">
+              <summary>
+                <span>Box</span>
+                <strong>{scaleDrillSelection.boxName}</strong>
+              </summary>
+              <div className="scale-drill-option-list compact">
+                {TRAINING_BOX_NAMES.map((boxName) => (
+                  <button
+                    className={scaleDrillSelection.boxName === boxName ? "selected" : ""}
+                    key={boxName}
+                    type="button"
+                    onClick={() =>
+                      setScaleDrillSelection((current) => ({
+                        ...current,
+                        boxName,
+                      }))
+                    }
+                  >
+                    {boxName}
+                  </button>
+                ))}
+              </div>
+            </details>
+          </div>
+        </div>
+      ) : null}
 
       <div className="training-target-card target-test-card">
         <div className="target-card-header">
@@ -443,9 +663,11 @@ function TargetTrainingContent({
         </div>
         <strong>
           {targetProblem
-            ? isChordMode
+            ? isScaleDrillMode
+              ? targetProblem.scaleName
+              : isChordMode
               ? targetProblem.chord?.label
-              : targetProblem.targetDegree
+              : getDegreeDisplayLabel(targetProblem.targetDegree)
             : "Ready"}
         </strong>
         {targetProblem ? (
@@ -463,12 +685,24 @@ function TargetTrainingContent({
               <dd>{targetProblem.boxName}</dd>
             </div>
             <div>
-              <dt>{isChordMode ? "Target Tones" : "Target Tone"}</dt>
+              <dt>
+                {isScaleDrillMode
+                  ? "Target"
+                  : isChordMode
+                    ? "Target Tones"
+                    : "Target Tone"}
+              </dt>
               <dd>
-                {isChordMode
-                  ? targetProblem.chord?.degrees.join(" ")
-                  : targetProblem.targetDegree}
+                {isScaleDrillMode
+                  ? "All scale tones"
+                  : isChordMode
+                    ? targetProblem.chord?.degrees.map(getDegreeDisplayLabel).join(" / ")
+                    : getDegreeDisplayLabel(targetProblem.targetDegree)}
               </dd>
+            </div>
+            <div>
+              <dt>Target Notes</dt>
+              <dd>{targetProblem.targetNoteNames.join(" ")}</dd>
             </div>
           </dl>
         ) : null}
@@ -480,9 +714,8 @@ function TargetTrainingContent({
           className="primary-button training-start-button"
           type="button"
           onClick={handleStart}
-          disabled={isChallengeMode && isTimerRunning}
         >
-          Start
+          {isChallengeMode && isTimerRunning ? "Stop" : "Start"}
         </button>
         <button
           className="secondary-button"
@@ -495,7 +728,23 @@ function TargetTrainingContent({
         <button
           className="secondary-button"
           type="button"
-          onClick={handleRevealAnswer}
+          onBlur={handleRevealAnswerEnd}
+          onKeyDown={(event) => {
+            if (event.key === " " || event.key === "Enter") {
+              handleRevealAnswerStart();
+            }
+          }}
+          onKeyUp={(event) => {
+            if (event.key === " " || event.key === "Enter") {
+              handleRevealAnswerEnd();
+            }
+          }}
+          onMouseDown={handleRevealAnswerStart}
+          onMouseLeave={handleRevealAnswerEnd}
+          onMouseUp={handleRevealAnswerEnd}
+          onTouchCancel={handleRevealAnswerEnd}
+          onTouchEnd={handleRevealAnswerEnd}
+          onTouchStart={handleRevealAnswerStart}
           disabled={!targetProblem || sessionMode === "challenge"}
           title={
             sessionMode === "challenge"
@@ -510,21 +759,33 @@ function TargetTrainingContent({
         </button>
       </div>
 
-      {targetProblem ? (
-        <TrainingRevealFretboard
-          currentInput={currentInput}
-          fretboardNotes={targetProblem.fretboardNotes}
-          revealedNotes={revealedNotes}
-          showAnswers={revealUsed}
-          targetFretboardNotes={targetProblem.targetFretboardNotes}
-          temporaryWrongInput={temporaryWrongInput}
-        />
-      ) : (
-        <div className="training-empty-grid-placeholder">
-          <strong>Empty fretboard test</strong>
-          <p>Target notes stay hidden until you play the correct MIDI note.</p>
-        </div>
-      )}
+      <div className="training-fretboard-stage">
+        {showClearEffect ? (
+          <div className="training-clear-effect" aria-live="polite">
+            <span className="clear-burst burst-one" />
+            <span className="clear-burst burst-two" />
+            <span className="clear-burst burst-three" />
+            <strong>Clear!</strong>
+            <em>Good hit</em>
+          </div>
+        ) : null}
+
+        {targetProblem ? (
+          <TrainingRevealFretboard
+            currentInput={currentInput}
+            fretboardNotes={targetProblem.fretboardNotes}
+            revealedNotes={revealedNotes}
+            showAnswers={isRevealHeld}
+            targetFretboardNotes={targetProblem.targetFretboardNotes}
+            temporaryWrongInput={temporaryWrongInput}
+          />
+        ) : (
+          <div className="training-empty-grid-placeholder">
+            <strong>Empty fretboard test</strong>
+            <p>Target notes stay hidden until you play the correct MIDI note.</p>
+          </div>
+        )}
+      </div>
 
       {sessionMode === "challenge" ? (
         <div className="training-readout-grid challenge-readout-grid">
@@ -754,10 +1015,49 @@ function RootTrainingContent({
   );
 }
 
-function createTargetProblem(problem: TrainingProblem): TrainingTargetProblem {
+function createTargetProblem(
+  problem: TrainingProblem,
+  scaleDrillSelection?: ScaleDrillSelection,
+): TrainingTargetProblem {
+  if (problem.type === "scale-drill") {
+    if (!scaleDrillSelection) {
+      return generateRandomScaleDrillProblem();
+    }
+
+    return generateScaleDrillProblem(scaleDrillSelection.scaleId, {
+      boxName: scaleDrillSelection.boxName,
+      key: scaleDrillSelection.key,
+    });
+  }
+
   return problem.targetMode === "chord"
     ? generateChordToneProblem()
     : generateRandomToneProblem();
+}
+
+function getScaleDrillGenerationOptions({
+  problem,
+  scaleDrillSelection,
+  useManualScaleDrillSelection,
+}: {
+  problem: TrainingProblem;
+  scaleDrillSelection: ScaleDrillSelection;
+  useManualScaleDrillSelection: boolean;
+}): ScaleDrillSelection | undefined {
+  return problem.type === "scale-drill" && useManualScaleDrillSelection
+    ? scaleDrillSelection
+    : undefined;
+}
+
+function getScaleDrillScale(scaleId: string) {
+  return (
+    SCALE_DRILL_SCALES.find((scale) => scale.id === scaleId) ??
+    SCALE_DRILL_SCALES[0]
+  );
+}
+
+function getScaleDrillDisplayName(scaleName: string): string {
+  return scaleName.replace("Natural Minor Scale", "Minor Scale").toUpperCase();
 }
 
 function createChallengeResult({
@@ -777,7 +1077,12 @@ function createChallengeResult({
     score.attempts > 0 ? Math.round((score.correctCount / score.attempts) * 100) : 0;
 
   return {
-    problemType: problem.targetMode === "chord" ? "chord-tone" : "random-tone",
+    problemType:
+      problem.type === "scale-drill"
+        ? "scale-drill"
+        : problem.targetMode === "chord"
+          ? "chord-tone"
+          : "random-tone",
     durationSec,
     correctCount: score.correctCount,
     attempts: score.attempts,
@@ -789,11 +1094,23 @@ function createChallengeResult({
 }
 
 function getCorrectFeedback(problem: TrainingTargetProblem, note: FretboardNote): string {
+  if (problem.mode === "scale-drill") {
+    return `Correct - that note is in ${problem.key} ${problem.scaleName} ${problem.boxName}.`;
+  }
+
   if (problem.mode === "chord") {
     return `Correct - that note is part of ${problem.chord?.label}.`;
   }
 
-  return `Correct - that is ${note.degree} in ${problem.key} ${problem.scaleName} ${problem.boxName}.`;
+  return `Correct - that is ${getDegreeDisplayLabel(note.degree)} in ${problem.key} ${problem.scaleName} ${problem.boxName}.`;
+}
+
+function getCompleteFeedback(problem: TrainingTargetProblem): string {
+  if (problem.mode === "scale-drill") {
+    return `Complete - you found every ${problem.key} ${problem.scaleName} note in this box.`;
+  }
+
+  return "Complete - you found all target notes in this box.";
 }
 
 function getWrongFeedback(problem: TrainingTargetProblem | null): string {
@@ -801,25 +1118,46 @@ function getWrongFeedback(problem: TrainingTargetProblem | null): string {
     return "Wrong.";
   }
 
-  if (problem.mode === "chord") {
-    return `Wrong - play one of ${problem.chord?.degrees.join(", ")} inside ${problem.boxName}.`;
+  if (problem.mode === "scale-drill") {
+    return `Wrong - find notes from ${problem.key} ${problem.scaleName} inside ${problem.boxName}.`;
   }
 
-  return `Wrong - play ${problem.targetDegree} inside ${problem.boxName}.`;
+  if (problem.mode === "chord") {
+    return `Wrong - play one of ${problem.chord?.degrees.map(getDegreeDisplayLabel).join(", ")} inside ${problem.boxName}.`;
+  }
+
+  return `Wrong - play ${getDegreeDisplayLabel(problem.targetDegree)} inside ${problem.boxName}.`;
 }
 
 function getInstruction(problem: TrainingTargetProblem): string {
+  if (problem.mode === "scale-drill") {
+    return `Find and play every ${problem.key} ${problem.scaleName} note inside ${problem.boxName}.`;
+  }
+
   if (problem.mode === "chord") {
     return `Find and play every ${problem.chord?.label} chord tone inside ${problem.boxName}.`;
   }
 
-  return `Find and play every ${problem.targetDegree} note inside ${problem.boxName}.`;
+  return `Find and play every ${getDegreeDisplayLabel(problem.targetDegree)} note inside ${problem.boxName}.`;
 }
 
 function getStartFeedback(problem: TrainingTargetProblem): string {
+  if (problem.mode === "scale-drill") {
+    return `Find every ${problem.key} ${problem.scaleName} note inside ${problem.boxName}.`;
+  }
+
   return problem.mode === "chord"
-    ? `Find ${problem.chord?.degrees.join(" ")} inside ${problem.boxName}.`
-    : `Find ${problem.targetDegree} inside ${problem.boxName}.`;
+    ? `Find ${problem.chord?.degrees.map(getDegreeDisplayLabel).join(" ")} inside ${problem.boxName}.`
+    : `Find ${getDegreeDisplayLabel(problem.targetDegree)} inside ${problem.boxName}.`;
+}
+
+function getDegreeDisplayLabel(degree: string | undefined): string {
+  if (!degree) {
+    return "--";
+  }
+
+  const label = DEGREE_LABELS[degree];
+  return label ? `${degree} (${label})` : degree;
 }
 
 function isSameFretboardLocation(left: FretboardNote, right: FretboardNote): boolean {

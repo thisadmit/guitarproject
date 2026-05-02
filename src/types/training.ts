@@ -1,6 +1,11 @@
 import type { FretboardNote } from "./scale";
 
-export type TrainingProblemType = "note" | "scale" | "lick";
+export type TrainingProblemType =
+  | "note"
+  | "scale"
+  | "lick"
+  | "target-test"
+  | "scale-drill";
 export type TrainingDifficulty = "beginner" | "intermediate" | "advanced";
 export type TrainingTargetMode = "degree" | "chord";
 export type TrainingSessionMode = "practice" | "challenge";
@@ -10,18 +15,19 @@ export type ChordQuality = "major" | "minor" | "dominant7" | "minor7" | "major7"
 export interface TrainingProblem {
   id: string;
   title: string;
-  type: TrainingProblemType | "target-test";
+  type: TrainingProblemType;
   difficulty: TrainingDifficulty;
   key: string;
   scale?: string;
   targetNotes: number[];
   sequence?: number[];
   targetMode?: TrainingTargetMode;
+  fixedScaleId?: string;
 }
 
 export interface TrainingTargetProblem {
   id: string;
-  mode: TrainingTargetMode;
+  mode: TrainingTargetMode | "scale-drill";
   key: string;
   scaleId: string;
   scaleName: string;

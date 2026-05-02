@@ -12,6 +12,22 @@ import { getAcceptedMidiNumbers } from "./fretboardNoteUtils";
 
 const KEYS = ["A", "A#", "B", "C", "C#", "D", "D#", "E", "F", "F#", "G", "G#"] as const;
 const BOX_NAMES = ["Box 1", "Box 2", "Box 3", "Box 4", "Box 5"] as const;
+const MAX_PROBLEM_GENERATION_ATTEMPTS = 20;
+
+export const TRAINING_KEYS = KEYS;
+export const TRAINING_BOX_NAMES = BOX_NAMES;
+export const SCALE_DRILL_SCALE_IDS = [
+  "minor-pentatonic",
+  "major-pentatonic",
+  "blues-scale",
+  "natural-minor-scale",
+  "major-scale",
+] as const;
+
+export interface ScaleDrillOptions {
+  boxName?: string;
+  key?: string;
+}
 
 const CHORD_QUALITIES: readonly {
   quality: ChordQuality;
@@ -39,6 +55,49 @@ const CHROMATIC_SCALE: Scale = {
 };
 
 export function generateRandomToneProblem(): TrainingTargetProblem {
+  for (let attempt = 0; attempt < MAX_PROBLEM_GENERATION_ATTEMPTS; attempt += 1) {
+    const problem = createRandomToneProblem();
+
+    if (problem.targetFretboardNotes.length > 0) {
+      return problem;
+    }
+  }
+
+  return createRandomToneProblem();
+}
+
+export function generateChordToneProblem(): TrainingTargetProblem {
+  for (let attempt = 0; attempt < MAX_PROBLEM_GENERATION_ATTEMPTS; attempt += 1) {
+    const problem = createChordToneProblem();
+
+    if (problem.targetFretboardNotes.length > 0) {
+      return problem;
+    }
+  }
+
+  return createChordToneProblem();
+}
+
+export function generateScaleDrillProblem(
+  scaleId: string,
+  options: ScaleDrillOptions = {},
+): TrainingTargetProblem {
+  for (let attempt = 0; attempt < MAX_PROBLEM_GENERATION_ATTEMPTS; attempt += 1) {
+    const problem = createScaleDrillProblem(scaleId, options);
+
+    if (problem.targetFretboardNotes.length > 0) {
+      return problem;
+    }
+  }
+
+  return createScaleDrillProblem(scaleId, options);
+}
+
+export function generateRandomScaleDrillProblem(): TrainingTargetProblem {
+  return generateScaleDrillProblem(pickRandom(SCALE_DRILL_SCALE_IDS));
+}
+
+function createRandomToneProblem(): TrainingTargetProblem {
   const key = pickRandom(KEYS);
   const scale = pickRandom(scales);
   const boxName = pickRandom(BOX_NAMES);
@@ -46,7 +105,7 @@ export function generateRandomToneProblem(): TrainingTargetProblem {
   const targetDegree = pickRandom(scale.formula);
   const fretboardNotes = getTransposedBoxNotes(scale, box, key, "auto");
   const targetFretboardNotes = fretboardNotes.filter(
-    (note) => note.degree === targetDegree && note.isInBox,
+    (note) => note.degree === targetDegree,
   );
 
   return {
@@ -64,7 +123,32 @@ export function generateRandomToneProblem(): TrainingTargetProblem {
   };
 }
 
-export function generateChordToneProblem(): TrainingTargetProblem {
+function createScaleDrillProblem(
+  scaleId: string,
+  options: ScaleDrillOptions,
+): TrainingTargetProblem {
+  const scale = getRequiredScale(scaleId);
+  const key = options.key ?? pickRandom(KEYS);
+  const boxName = options.boxName ?? pickRandom(BOX_NAMES);
+  const box = getRequiredBox(boxName);
+  const fretboardNotes = getTransposedBoxNotes(scale, box, key, "auto");
+  const targetFretboardNotes = fretboardNotes;
+
+  return {
+    id: createProblemId("scale-drill"),
+    mode: "scale-drill",
+    key,
+    scaleId: scale.id,
+    scaleName: scale.name,
+    boxName,
+    fretboardNotes,
+    targetFretboardNotes,
+    targetMidiNumbers: getTargetMidiNumbers(targetFretboardNotes),
+    targetNoteNames: getTargetNoteNames(targetFretboardNotes),
+  };
+}
+
+function createChordToneProblem(): TrainingTargetProblem {
   const key = pickRandom(KEYS);
   const boxName = pickRandom(BOX_NAMES);
   const box = getRequiredBox(boxName);
@@ -81,8 +165,7 @@ export function generateChordToneProblem(): TrainingTargetProblem {
     recommendedFor: "Chord tone recognition.",
   };
   const fretboardNotes = getTransposedBoxNotes(CHROMATIC_SCALE, box, key, "auto");
-  const targetFretboardNotes = getTransposedBoxNotes(chordScale, box, key, "auto")
-    .filter((note) => note.isInBox);
+  const targetFretboardNotes = getTransposedBoxNotes(chordScale, box, key, "auto");
 
   return {
     id: createProblemId("chord"),
@@ -102,6 +185,16 @@ export function generateChordToneProblem(): TrainingTargetProblem {
     targetMidiNumbers: getTargetMidiNumbers(targetFretboardNotes),
     targetNoteNames: getTargetNoteNames(targetFretboardNotes),
   };
+}
+
+function getRequiredScale(scaleId: string): Scale {
+  const scale = scales.find((candidate) => candidate.id === scaleId);
+
+  if (!scale) {
+    throw new Error(`Unsupported training scale: ${scaleId}`);
+  }
+
+  return scale;
 }
 
 function getTargetMidiNumbers(notes: TrainingTargetProblem["targetFretboardNotes"]): number[] {

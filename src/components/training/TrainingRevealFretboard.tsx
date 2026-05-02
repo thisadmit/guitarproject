@@ -21,6 +21,15 @@ const STRING_LABELS: Record<(typeof STRING_ORDER)[number], string> = {
   6: "E",
 };
 
+const STRING_OPEN_MIDI: Record<(typeof STRING_ORDER)[number], number> = {
+  6: 40,
+  5: 45,
+  4: 50,
+  3: 55,
+  2: 59,
+  1: 64,
+};
+
 export function TrainingRevealFretboard({
   currentInput,
   fretboardNotes,
@@ -41,6 +50,8 @@ export function TrainingRevealFretboard({
     1,
   )}, minmax(58px, 1fr))`;
   const visibleNotes = showAnswers ? targetFretboardNotes : revealedNotes;
+  const displayFretShift =
+    fretboardNotes.length > 0 ? fretboardNotes[0].displayFret - fretboardNotes[0].fret : 0;
 
   return (
     <section className="training-reveal-fretboard" aria-label="Training reveal fretboard">
@@ -80,6 +91,10 @@ export function TrainingRevealFretboard({
                       getAcceptedMidiNumbers(note).includes(temporaryWrongInput.midi),
                   )
                 : null;
+              const wrongInputMatchesCell =
+                temporaryWrongInput !== null &&
+                STRING_OPEN_MIDI[stringNumber] + (fret - displayFretShift) ===
+                  temporaryWrongInput.midi;
               const isCurrent =
                 revealedNote !== undefined &&
                 currentInput !== null &&
@@ -98,12 +113,13 @@ export function TrainingRevealFretboard({
                       {revealedNote.degree}
                       {isCurrent ? <small>NOW</small> : null}
                     </span>
-                  ) : wrongNote ? (
+                  ) : wrongNote || wrongInputMatchesCell ? (
                     <span
                       className="fret-note fret-note--wrong"
                       title={`${temporaryWrongInput?.fullName ?? "Wrong input"} - string ${stringNumber}, fret ${fret}`}
                     >
                       {temporaryWrongInput?.note ?? "X"}
+                      <small>OUT</small>
                     </span>
                   ) : null}
                 </div>
