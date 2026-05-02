@@ -18,8 +18,16 @@ export function useAudioInput(): AudioInputState {
   const audioContextRef = useRef<AudioContext | null>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
   const sourceNodeRef = useRef<MediaStreamAudioSourceNode | null>(null);
+  const isRunningRef = useRef<boolean>(false);
+  const startRequestIdRef = useRef<number>(0);
+
+  useEffect(() => {
+    isRunningRef.current = isRunning;
+  }, [isRunning]);
 
   const stop = useCallback(() => {
+    startRequestIdRef.current += 1;
+
     sourceNodeRef.current?.disconnect();
     sourceNodeRef.current = null;
 
@@ -32,19 +40,23 @@ export function useAudioInput(): AudioInputState {
     setAnalyserNode(null);
     setSampleRate(null);
     setIsRunning(false);
+    isRunningRef.current = false;
   }, []);
 
   const start = useCallback(async () => {
-    if (isRunning) {
+    if (isRunningRef.current) {
       return;
     }
 
     setError(null);
+    const requestId = startRequestIdRef.current + 1;
+    startRequestIdRef.current = requestId;
+    let stream: MediaStream | null = null;
+    let audioContext: AudioContext | null = null;
+    let sourceNode: MediaStreamAudioSourceNode | null = null;
 
     try {
-      console.debug("[audio-input] requesting getUserMedia");
-
-      const stream = await navigator.mediaDevices.getUserMedia({
+      stream = await navigator.mediaDevices.getUserMedia({
         audio: {
           echoCancellation: false,
           noiseSuppression: false,
@@ -52,32 +64,21 @@ export function useAudioInput(): AudioInputState {
         },
       });
 
-      console.debug("[audio-input] getUserMedia success", {
-        audioTracks: stream.getAudioTracks().map((track) => ({
-          enabled: track.enabled,
-          id: track.id,
-          label: track.label,
-          muted: track.muted,
-          readyState: track.readyState,
-        })),
-      });
-
       const AudioContextConstructor =
         window.AudioContext ?? window.webkitAudioContext;
-      const audioContext = new AudioContextConstructor();
-      console.debug("[audio-input] audioContext created", {
-        sampleRate: audioContext.sampleRate,
-        state: audioContext.state,
-      });
+      audioContext = new AudioContextConstructor();
 
       if (audioContext.state === "suspended") {
         await audioContext.resume();
-        console.debug("[audio-input] audioContext resumed", {
-          state: audioContext.state,
-        });
       }
 
-      const sourceNode = audioContext.createMediaStreamSource(stream);
+      if (startRequestIdRef.current !== requestId) {
+        stream.getTracks().forEach((track) => track.stop());
+        void audioContext.close();
+        return;
+      }
+
+      sourceNode = audioContext.createMediaStreamSource(stream);
       const analyser = audioContext.createAnalyser();
 
       analyser.fftSize = 4096;
@@ -88,26 +89,22 @@ export function useAudioInput(): AudioInputState {
       mediaStreamRef.current = stream;
       sourceNodeRef.current = sourceNode;
 
-      console.debug("[audio-input] analyser ready", {
-        fftSize: analyser.fftSize,
-        sampleRate: audioContext.sampleRate,
-        state: audioContext.state,
-      });
-
       setAnalyserNode(analyser);
       setSampleRate(audioContext.sampleRate);
       setIsRunning(true);
-      console.debug("[audio-input] isRunning -> true");
+      isRunningRef.current = true;
     } catch (unknownError) {
       const message =
         unknownError instanceof Error
           ? unknownError.message
           : "Unable to start audio input.";
-      console.debug("[audio-input] start failed", unknownError);
       setError(message);
+      sourceNode?.disconnect();
+      stream?.getTracks().forEach((track) => track.stop());
+      void audioContext?.close();
       stop();
     }
-  }, [isRunning, stop]);
+  }, [stop]);
 
   useEffect(() => stop, [stop]);
 

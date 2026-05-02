@@ -1,4 +1,3 @@
-import { useEffect, useRef } from "react";
 import { PedalTuner } from "../tuner/PedalTuner";
 import { StatusPanel } from "../tuner/StatusPanel";
 import { Waveform } from "../tuner/Waveform";
@@ -6,7 +5,7 @@ import { useAudioInput } from "../../hooks/useAudioInput";
 import { useTuner } from "../../hooks/useTuner";
 import type { StabilizerConfig } from "../../utils/tunerStabilizer";
 
-const TUNER_DEBUG_CONFIG: Partial<StabilizerConfig> = {
+const TUNER_CONFIG: Partial<StabilizerConfig> = {
   attackIgnoreMs: 40,
   minClarity: 0.45,
   noteStableFrames: 2,
@@ -15,23 +14,15 @@ const TUNER_DEBUG_CONFIG: Partial<StabilizerConfig> = {
 };
 
 export function TunerPage() {
-  const hasRequestedAutoStartRef = useRef<boolean>(false);
   const { analyserNode, error, isRunning, sampleRate, start, stop } =
     useAudioInput();
   const reading = useTuner(
     analyserNode,
     sampleRate,
     isRunning,
-    TUNER_DEBUG_CONFIG,
+    TUNER_CONFIG,
   );
   const inputLevel = Math.min(1, reading.inputRms / 0.08);
-
-  useEffect(() => {
-    if (!hasRequestedAutoStartRef.current) {
-      hasRequestedAutoStartRef.current = true;
-      void start();
-    }
-  }, [start]);
 
   const handleToggle = (): void => {
     if (isRunning) {
@@ -46,16 +37,24 @@ export function TunerPage() {
       <div className="tool-bar">
         <div>
           <h2>Tuner</h2>
-          <p>Auto-listening tuner for quick checks before practice sessions.</p>
+          <p>
+            {isRunning
+              ? "Listening for guitar input."
+              : "Click Start Tuner to enable microphone."}
+          </p>
         </div>
         {error ? (
           <button className="primary-button" type="button" onClick={() => void start()}>
             Retry Audio
           </button>
-        ) : (
+        ) : isRunning ? (
           <span className={`audio-status-pill ${isRunning ? "active" : ""}`}>
-            {isRunning ? "Listening" : "Starting..."}
+            Listening
           </span>
+        ) : (
+          <button className="primary-button" type="button" onClick={() => void start()}>
+            Start Tuner
+          </button>
         )}
       </div>
 
@@ -86,52 +85,6 @@ export function TunerPage() {
         />
 
         <StatusPanel reading={reading} isRunning={isRunning} />
-
-        <aside className="status-panel tuner-debug-panel" aria-label="Tuner debug">
-          <h2>Debug</h2>
-          <dl>
-            <div>
-              <dt>isRunning</dt>
-              <dd>{String(isRunning)}</dd>
-            </div>
-            <div>
-              <dt>sampleRate</dt>
-              <dd>{sampleRate ?? "--"}</dd>
-            </div>
-            <div>
-              <dt>analyser</dt>
-              <dd>{analyserNode ? "exists" : "null"}</dd>
-            </div>
-            <div>
-              <dt>inputRms</dt>
-              <dd>{reading.inputRms > 0 ? reading.inputRms.toFixed(4) : "--"}</dd>
-            </div>
-            <div>
-              <dt>clarity</dt>
-              <dd>
-                {reading.clarity !== null
-                  ? `${Math.round(reading.clarity * 100)}%`
-                  : "--"}
-              </dd>
-            </div>
-            <div>
-              <dt>frequency</dt>
-              <dd>
-                {reading.frequency !== null
-                  ? `${reading.frequency.toFixed(1)} Hz`
-                  : "--"}
-              </dd>
-            </div>
-            <div>
-              <dt>hasSignal</dt>
-              <dd>{String(reading.hasSignal)}</dd>
-            </div>
-            <div>
-              <dt>error</dt>
-              <dd>{error ?? "--"}</dd>
-            </div>
-          </dl>
-        </aside>
       </section>
     </section>
   );

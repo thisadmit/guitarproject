@@ -290,7 +290,6 @@ export function generateScaleBox(
         }
 
         const octave = getOctaveFromMidi(midi);
-        const displayMidi = openMidi + fret + variant.shift;
 
         return {
           stringNumber,
@@ -301,8 +300,6 @@ export function generateScaleBox(
           octave,
           fullName: `${note}${octave}`,
           midi,
-          displayMidi,
-          acceptedMidiNumbers: getAcceptedMidiNumbers(midi, displayMidi),
           degree,
           isRoot: degree === "1",
           isInBox: boxMidiNumbers.has(midi),
@@ -328,7 +325,6 @@ function generateBoxPatternNotes(
       const openNote = STRING_OPEN_NOTES_BY_NUMBER[stringPattern.stringNumber];
       const note = getNoteAtFret(openNote, fret);
       const midi = STRING_OPEN_MIDI_BY_NUMBER[stringPattern.stringNumber] + fret;
-      const displayMidi = midi;
 
       return {
         stringNumber: stringPattern.stringNumber,
@@ -339,8 +335,6 @@ function generateBoxPatternNotes(
         octave: getOctaveFromMidi(midi),
         fullName: `${note}${getOctaveFromMidi(midi)}`,
         midi,
-        displayMidi,
-        acceptedMidiNumbers: getAcceptedMidiNumbers(midi, displayMidi),
         degree: patternNote.degree,
         isRoot: patternNote.degree === "1",
         isInBox: true,
@@ -416,11 +410,4 @@ function getPitchClass(note: string): number {
 
 function getOctaveFromMidi(midi: number): number {
   return Math.floor(midi / 12) - 1;
-}
-
-function getAcceptedMidiNumbers(
-  midi: number,
-  displayMidi: number,
-): readonly number[] {
-  return midi === displayMidi ? [midi] : [midi, displayMidi];
 }

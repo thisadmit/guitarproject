@@ -41,8 +41,6 @@ export interface FretboardNote {
   octave: number;
   fullName: string;
   midi: number;
-  displayMidi: number;
-  acceptedMidiNumbers: readonly number[];
   degree: string;
   isRoot: boolean;
   isInBox: boolean;

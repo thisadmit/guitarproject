@@ -132,17 +132,18 @@ export function stabilizePitchSample(
     return null;
   }
 
-  if (
-    state.lastAcceptedFrequency !== null &&
-    Math.abs(sample.frequency - state.lastAcceptedFrequency) /
-      state.lastAcceptedFrequency >
-      config.maxFrequencyJumpRatio
-  ) {
+  const rawNote = frequencyToNote(sample.frequency);
+  if (!rawNote) {
     return null;
   }
 
-  const rawNote = frequencyToNote(sample.frequency);
-  if (!rawNote) {
+  const isLargeFrequencyJump =
+    state.lastAcceptedFrequency !== null &&
+    Math.abs(sample.frequency - state.lastAcceptedFrequency) /
+      state.lastAcceptedFrequency >
+      config.maxFrequencyJumpRatio;
+
+  if (isLargeFrequencyJump && state.stableNote?.fullName === rawNote.fullName) {
     return null;
   }
 
