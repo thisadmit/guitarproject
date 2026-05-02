@@ -274,6 +274,15 @@ p {
   transform: translateY(-1px);
 }
 
+.primary-button:disabled,
+.secondary-button:disabled,
+.session-mode-toggle button:disabled,
+.time-limit-selector button:disabled {
+  cursor: not-allowed;
+  opacity: 0.46;
+  transform: none;
+}
+
 .audio-status-pill {
   display: grid;
   place-items: center;
@@ -653,6 +662,48 @@ p {
   background: rgba(240, 168, 59, 0.09);
 }
 
+.training-hero-mode-panel {
+  display: grid;
+  align-content: center;
+  justify-items: stretch;
+  min-width: 250px;
+  min-height: 96px;
+  padding: 16px;
+  border: 1px solid rgba(103, 223, 154, 0.48);
+  border-radius: 8px;
+  background: rgba(103, 223, 154, 0.08);
+}
+
+.training-page.challenge-mode .training-mode-hero {
+  border-color: rgba(99, 200, 255, 0.24);
+  background:
+    linear-gradient(135deg, rgba(99, 200, 255, 0.15), transparent 38%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02)),
+    #101722;
+}
+
+.training-page.challenge-mode .training-hero-mode-panel {
+  border-color: rgba(99, 200, 255, 0.54);
+  background: rgba(99, 200, 255, 0.1);
+}
+
+.training-page.challenge-mode .session-mode-toggle button.selected,
+.training-page.challenge-mode .time-limit-selector button.selected,
+.training-content.challenge-active .segmented-control button.selected,
+.training-content.challenge-active .time-limit-selector button.selected {
+  border-color: rgba(99, 200, 255, 0.76);
+  color: #06121a;
+  background: #63c8ff;
+}
+
+.training-page.challenge-mode .training-sidebar,
+.training-content.challenge-active {
+  border-color: rgba(99, 200, 255, 0.22);
+  background:
+    linear-gradient(180deg, rgba(99, 200, 255, 0.055), rgba(18, 22, 30, 0.76)),
+    rgba(18, 22, 30, 0.76);
+}
+
 .learn-selection-summary {
   color: #dce3ec;
   font-weight: 800;
@@ -841,6 +892,98 @@ p {
   gap: 16px;
 }
 
+.training-session-controls {
+  display: grid;
+  justify-items: end;
+  gap: 8px;
+}
+
+.session-mode-toggle,
+.time-limit-selector,
+.segmented-control {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.session-mode-toggle button,
+.time-limit-selector button,
+.segmented-control button {
+  min-height: 36px;
+  padding: 0 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  color: #dce3ec;
+  background: rgba(255, 255, 255, 0.05);
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.session-mode-toggle button.selected,
+.time-limit-selector button.selected,
+.segmented-control button.selected {
+  border-color: rgba(103, 223, 154, 0.68);
+  color: #07110c;
+  background: #67df9a;
+}
+
+.time-limit-selector span {
+  color: #8f9bad;
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.challenge-config-panel {
+  padding: 16px;
+  border: 1px solid rgba(99, 200, 255, 0.2);
+  border-radius: 8px;
+  background: rgba(99, 200, 255, 0.065);
+}
+
+.challenge-config-grid {
+  display: grid;
+  grid-template-columns: minmax(260px, 1fr) minmax(220px, 0.8fr);
+  gap: 12px;
+}
+
+.challenge-config-group {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.18);
+}
+
+.challenge-config-group > span {
+  color: #8f9bad;
+  font-size: 0.72rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.interval-slider-control {
+  display: grid;
+  grid-template-columns: minmax(160px, 1fr) 64px;
+  gap: 12px;
+  align-items: center;
+  width: 100%;
+}
+
+.interval-slider-control input {
+  width: 100%;
+}
+
+.interval-slider-control strong {
+  color: #63c8ff;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 1rem;
+  text-align: right;
+}
+
 .training-content.correct {
   border-color: rgba(103, 223, 154, 0.5);
 }
@@ -915,6 +1058,10 @@ p {
   gap: 12px;
 }
 
+.challenge-readout-grid {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+}
+
 .training-readout-grid.secondary strong {
   font-size: clamp(1.2rem, 3vw, 2rem);
 }
@@ -937,8 +1084,66 @@ p {
   font-weight: 800;
 }
 
+.challenge-result-card {
+  padding: 16px;
+  border: 1px solid rgba(103, 223, 154, 0.28);
+  border-radius: 8px;
+  background: rgba(103, 223, 154, 0.08);
+}
+
+.challenge-result-card > span {
+  display: block;
+  color: #67df9a;
+  font-size: 0.82rem;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.challenge-result-card dl {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 10px;
+  margin: 14px 0 0;
+}
+
+.challenge-result-card div {
+  padding: 12px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.18);
+}
+
+.challenge-result-card dt {
+  color: #8f9bad;
+  font-size: 0.72rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.challenge-result-card dd {
+  margin: 6px 0 0;
+  color: #f8fbff;
+  font-size: 1.35rem;
+  font-weight: 900;
+}
+
 .target-test-card strong {
   font-size: clamp(2.2rem, 5vw, 4rem);
+}
+
+.target-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.target-card-header > span {
+  color: #67df9a;
+  font-size: 0.78rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .target-problem-details {
@@ -2179,8 +2384,25 @@ p {
   .learning-content-grid,
   .training-layout,
   .training-controls,
-  .training-readout-grid {
+  .training-readout-grid,
+  .challenge-readout-grid,
+  .challenge-config-grid,
+  .target-problem-details,
+  .challenge-result-card dl {
     grid-template-columns: 1fr;
+  }
+
+  .training-session-controls {
+    justify-items: stretch;
+  }
+
+  .training-hero-mode-panel {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .target-card-header {
+    display: grid;
   }
 
   .tuner-layout {

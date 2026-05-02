@@ -3,6 +3,8 @@ import type { FretboardNote } from "./scale";
 export type TrainingProblemType = "note" | "scale" | "lick";
 export type TrainingDifficulty = "beginner" | "intermediate" | "advanced";
 export type TrainingTargetMode = "degree" | "chord";
+export type TrainingSessionMode = "practice" | "challenge";
+export type TrainingChallengeTimingMode = "total" | "interval";
 export type ChordQuality = "major" | "minor" | "dominant7" | "minor7" | "major7";
 
 export interface TrainingProblem {
