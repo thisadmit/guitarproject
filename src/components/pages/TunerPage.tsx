@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { PedalTuner } from "../tuner/PedalTuner";
 import { StatusPanel } from "../tuner/StatusPanel";
 import { Waveform } from "../tuner/Waveform";
@@ -14,7 +15,7 @@ const TUNER_CONFIG: Partial<StabilizerConfig> = {
 };
 
 export function TunerPage() {
-  const { analyserNode, error, isRunning, sampleRate, start, stop } =
+  const { analyserNode, error, isRunning, sampleRate, start } =
     useAudioInput();
   const reading = useTuner(
     analyserNode,
@@ -24,13 +25,11 @@ export function TunerPage() {
   );
   const inputLevel = Math.min(1, reading.inputRms / 0.08);
 
-  const handleToggle = (): void => {
-    if (isRunning) {
-      stop();
-    } else {
+  useEffect(() => {
+    if (!isRunning && !error) {
       void start();
     }
-  };
+  }, [error, isRunning, start]);
 
   return (
     <section className="page-stack" aria-label="Tuner mode">
@@ -40,21 +39,17 @@ export function TunerPage() {
           <p>
             {isRunning
               ? "Listening for guitar input."
-              : "Click Start Tuner to enable microphone."}
+              : "Preparing microphone input automatically."}
           </p>
         </div>
         {error ? (
           <button className="primary-button" type="button" onClick={() => void start()}>
             Retry Audio
           </button>
-        ) : isRunning ? (
-          <span className={`audio-status-pill ${isRunning ? "active" : ""}`}>
-            Listening
-          </span>
         ) : (
-          <button className="primary-button" type="button" onClick={() => void start()}>
-            Start Tuner
-          </button>
+          <span className={`audio-status-pill ${isRunning ? "active" : ""}`}>
+            {isRunning ? "Listening" : "Starting"}
+          </span>
         )}
       </div>
 
@@ -81,7 +76,6 @@ export function TunerPage() {
         <PedalTuner
           reading={reading}
           isRunning={isRunning}
-          onToggle={handleToggle}
         />
 
         <StatusPanel reading={reading} isRunning={isRunning} />

@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { HelpButton } from "../help/HelpButton";
 import { Sidebar } from "./Sidebar";
 import type { AppRoute } from "../../types/routes";
 
@@ -16,7 +17,12 @@ export function AppLayout({
   return (
     <div className="service-layout">
       <Sidebar activeRoute={activeRoute} onNavigate={onNavigate} />
-      <main className="service-main">{children}</main>
+      <main className="service-main">
+        <div className="app-help-anchor">
+          <HelpButton activeRoute={activeRoute} />
+        </div>
+        {children}
+      </main>
     </div>
   );
 }

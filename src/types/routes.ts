@@ -1,1 +1,6 @@
-export type AppRoute = "/practice" | "/learning" | "/training" | "/tuner";
+export type AppRoute =
+  | "/dashboard"
+  | "/practice"
+  | "/learning"
+  | "/training"
+  | "/tuner";

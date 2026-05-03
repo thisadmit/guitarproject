@@ -4,7 +4,6 @@ import type { StabilizedTunerReading } from "../../utils/tunerStabilizer";
 interface PedalTunerProps {
   reading: StabilizedTunerReading;
   isRunning: boolean;
-  onToggle: () => void;
 }
 
 const DIRECTION_LABELS = {
@@ -14,7 +13,7 @@ const DIRECTION_LABELS = {
   "no-signal": "No Signal",
 } as const;
 
-export function PedalTuner({ reading, isRunning, onToggle }: PedalTunerProps) {
+export function PedalTuner({ reading, isRunning }: PedalTunerProps) {
   const noteName = reading.hasSignal ? reading.note?.fullName ?? "--" : "--";
 
   return (
@@ -37,8 +36,8 @@ export function PedalTuner({ reading, isRunning, onToggle }: PedalTunerProps) {
       <button
         className={`footswitch ${isRunning ? "on" : ""}`}
         type="button"
-        onClick={onToggle}
-        aria-label={isRunning ? "Stop tuner" : "Start tuner"}
+        disabled
+        aria-label={isRunning ? "Tuner listening" : "Tuner starting"}
       >
         <span />
       </button>

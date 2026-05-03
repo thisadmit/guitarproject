@@ -1,12 +1,19 @@
 import { useEffect, useMemo, useState } from "react";
 import { AppLayout } from "./components/layout/AppLayout";
+import { DashboardPage } from "./components/pages/DashboardPage";
 import { LearningPage } from "./components/pages/LearningPage";
 import { PracticePage } from "./components/pages/PracticePage";
 import { TrainingPage } from "./components/pages/TrainingPage";
 import { TunerPage } from "./components/pages/TunerPage";
 import type { AppRoute } from "./types/routes";
 
-const ROUTES: readonly AppRoute[] = ["/practice", "/learning", "/training", "/tuner"];
+const ROUTES: readonly AppRoute[] = [
+  "/dashboard",
+  "/practice",
+  "/learning",
+  "/training",
+  "/tuner",
+];
 
 function App() {
   const [activeRoute, setActiveRoute] = useState<AppRoute>(() =>
@@ -15,7 +22,8 @@ function App() {
 
   useEffect(() => {
     if (window.location.pathname === "/") {
-      window.history.replaceState(null, "", "/practice");
+      window.history.replaceState(null, "", "/dashboard");
+      setActiveRoute("/dashboard");
     }
 
     const handlePopState = (): void => {
@@ -40,6 +48,8 @@ function App() {
 
   const page = useMemo(() => {
     switch (activeRoute) {
+      case "/dashboard":
+        return <DashboardPage onNavigate={handleNavigate} />;
       case "/learning":
         return <LearningPage />;
       case "/training":
@@ -61,7 +71,7 @@ function App() {
 function normalizeRoute(pathname: string): AppRoute {
   return ROUTES.includes(pathname as AppRoute)
     ? (pathname as AppRoute)
-    : "/practice";
+    : "/dashboard";
 }
 
 export default App;

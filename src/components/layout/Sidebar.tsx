@@ -12,6 +12,12 @@ const SIDEBAR_ITEMS: readonly {
   description: string;
 }[] = [
   {
+    route: "/dashboard",
+    icon: "D",
+    label: "Dashboard",
+    description: "Progress and quick start",
+  },
+  {
     route: "/practice",
     icon: "P",
     label: "Practice",

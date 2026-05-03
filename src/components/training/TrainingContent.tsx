@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { scales } from "../../data/scales";
+import { trainingStorage } from "../../services/storage";
+import type { TrainingRecord, TrainingRecordType } from "../../types/records";
 import type { FretboardNote } from "../../types/scale";
 import type {
   TrainingChallengeTimingMode,
@@ -38,7 +40,7 @@ interface TargetScore {
 }
 
 interface ChallengeResult {
-  problemType: "random-tone" | "chord-tone" | "scale-drill";
+  problemType: TrainingRecordType;
   durationSec: number;
   correctCount: number;
   attempts: number;
@@ -173,6 +175,8 @@ function TargetTrainingContent({
   const maxStreakRef = useRef<number>(0);
   const completedProblemsRef = useRef<number>(0);
   const activeChallengeDurationRef = useRef<number>(60);
+  const targetProblemRef = useRef<TrainingTargetProblem | null>(null);
+  const sessionStartedAtRef = useRef<number | null>(null);
 
   const isChordMode = problem.targetMode === "chord";
   const isScaleDrillMode = problem.type === "scale-drill";
@@ -234,6 +238,10 @@ function TargetTrainingContent({
   }, [completedProblems]);
 
   useEffect(() => {
+    targetProblemRef.current = targetProblem;
+  }, [targetProblem]);
+
+  useEffect(() => {
     if (sessionMode === "practice") {
       setIsTimerRunning(false);
       setTimeLeftSec(selectedChallengeDurationSec);
@@ -275,15 +283,18 @@ function TargetTrainingContent({
           setIsTimerRunning(false);
           setIsActive(false);
           setFeedback("Time is up - challenge complete.");
-          setChallengeResult(
-            createChallengeResult({
-              problem,
-              durationSec: activeChallengeDurationRef.current,
-              score: scoreRef.current,
-              maxStreak: maxStreakRef.current,
-              completedProblems: completedProblemsRef.current,
-            }),
-          );
+          const result = createChallengeResult({
+            problem,
+            durationSec: activeChallengeDurationRef.current,
+            score: scoreRef.current,
+            maxStreak: maxStreakRef.current,
+            completedProblems: completedProblemsRef.current,
+          });
+          setChallengeResult(result);
+          void saveChallengeRecord({
+            result,
+            targetProblem: targetProblemRef.current,
+          });
           return 0;
         }
 
@@ -384,6 +395,15 @@ function TargetTrainingContent({
 
     if (complete) {
       showClearCelebration();
+      void savePracticeRecord({
+        result: createPracticeResult({
+          problem,
+          durationSec: getElapsedPracticeDurationSec(sessionStartedAtRef.current),
+          score: scoreRef.current,
+          maxStreak: maxStreakRef.current,
+        }),
+        targetProblem,
+      });
     }
   }, [
     canJudgeInput,
@@ -436,6 +456,7 @@ function TargetTrainingContent({
     setChallengeResult(null);
     setShowClearEffect(false);
     lastProcessedMidiRef.current = null;
+    sessionStartedAtRef.current = Date.now();
 
     if (sessionMode === "challenge") {
       const emptyScore = { attempts: 0, correctCount: 0, streak: 0 };
@@ -467,15 +488,18 @@ function TargetTrainingContent({
     setTemporaryWrongInput(null);
     setIsRevealHeld(false);
     setFeedback("Challenge stopped.");
-    setChallengeResult(
-      createChallengeResult({
-        problem,
-        durationSec: elapsedSec,
-        score: scoreRef.current,
-        maxStreak: maxStreakRef.current,
-        completedProblems: completedProblemsRef.current,
-      }),
-    );
+    const result = createChallengeResult({
+      problem,
+      durationSec: elapsedSec,
+      score: scoreRef.current,
+      maxStreak: maxStreakRef.current,
+      completedProblems: completedProblemsRef.current,
+    });
+    setChallengeResult(result);
+    void saveChallengeRecord({
+      result,
+      targetProblem: targetProblemRef.current,
+    });
   };
 
   const handleNextProblem = (): void => {
@@ -499,6 +523,7 @@ function TargetTrainingContent({
     setShowClearEffect(false);
     setFeedback(getStartFeedback(nextProblem));
     lastProcessedMidiRef.current = null;
+    sessionStartedAtRef.current = Date.now();
   };
 
   const handleRevealAnswerStart = (): void => {
@@ -1077,12 +1102,7 @@ function createChallengeResult({
     score.attempts > 0 ? Math.round((score.correctCount / score.attempts) * 100) : 0;
 
   return {
-    problemType:
-      problem.type === "scale-drill"
-        ? "scale-drill"
-        : problem.targetMode === "chord"
-          ? "chord-tone"
-          : "random-tone",
+    problemType: getTrainingRecordType(problem),
     durationSec,
     correctCount: score.correctCount,
     attempts: score.attempts,
@@ -1091,6 +1111,122 @@ function createChallengeResult({
     completedProblems,
     createdAt: new Date().toISOString(),
   };
+}
+
+function createPracticeResult({
+  problem,
+  durationSec,
+  score,
+  maxStreak,
+}: {
+  problem: TrainingProblem;
+  durationSec: number;
+  score: TargetScore;
+  maxStreak: number;
+}): ChallengeResult {
+  const accuracy =
+    score.attempts > 0 ? Math.round((score.correctCount / score.attempts) * 100) : 0;
+
+  return {
+    problemType: getTrainingRecordType(problem),
+    durationSec,
+    correctCount: score.correctCount,
+    attempts: score.attempts,
+    accuracy,
+    maxStreak,
+    completedProblems: 1,
+    createdAt: new Date().toISOString(),
+  };
+}
+
+async function savePracticeRecord({
+  result,
+  targetProblem,
+}: {
+  result: ChallengeResult;
+  targetProblem: TrainingTargetProblem | null;
+}): Promise<void> {
+  await saveTrainingRecord({
+    mode: "practice",
+    result,
+    targetProblem,
+  });
+}
+
+async function saveChallengeRecord({
+  result,
+  targetProblem,
+}: {
+  result: ChallengeResult;
+  targetProblem: TrainingTargetProblem | null;
+}): Promise<void> {
+  await saveTrainingRecord({
+    mode: "challenge",
+    result,
+    targetProblem,
+  });
+}
+
+async function saveTrainingRecord({
+  mode,
+  result,
+  targetProblem,
+}: {
+  mode: TrainingRecord["mode"];
+  result: ChallengeResult;
+  targetProblem: TrainingTargetProblem | null;
+}): Promise<void> {
+  try {
+    const record: TrainingRecord = {
+      id: createRecordId(),
+      mode,
+      trainingType: result.problemType,
+      key: targetProblem?.key,
+      scale:
+        targetProblem?.mode === "chord"
+          ? targetProblem.chord?.label
+          : targetProblem?.scaleName,
+      box: targetProblem?.boxName,
+      durationSec: result.durationSec,
+      attempts: result.attempts,
+      correctCount: result.correctCount,
+      accuracy: result.accuracy,
+      maxStreak: result.maxStreak,
+      completedProblems: result.completedProblems,
+      createdAt: result.createdAt,
+    };
+
+    await trainingStorage.saveRecord(record);
+  } catch (error) {
+    console.warn("Unable to save training record.", error);
+  }
+}
+
+function getElapsedPracticeDurationSec(startedAt: number | null): number {
+  if (startedAt === null) {
+    return 0;
+  }
+
+  return Math.max(1, Math.round((Date.now() - startedAt) / 1000));
+}
+
+function getTrainingRecordType(problem: TrainingProblem): TrainingRecordType {
+  if (problem.type === "scale-drill") {
+    return "scale-drill";
+  }
+
+  if (problem.targetMode === "chord") {
+    return "chord-tone";
+  }
+
+  return "lick";
+}
+
+function createRecordId(): string {
+  return (
+    window.crypto?.randomUUID?.() ??
+    `record-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+  );
 }
 
 function getCorrectFeedback(problem: TrainingTargetProblem, note: FretboardNote): string {
